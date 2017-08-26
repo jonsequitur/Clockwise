@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Azure.ServiceBus" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure.Authentication" Version="2.3.1" />
+    <PackageReference Include="newtonsoft.json" Version="10.0.3" />
+    <PackageReference Include="pocket.disposable" Version="1.0.1" />
+    <PackageReference Include="pocketlogger" Version="0.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Clockwise\Clockwise.csproj" />
+  </ItemGroup>
+
+</Project>

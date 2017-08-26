@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.4</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="pocket.disposable" Version="1.0.1" />
+    <PackageReference Include="pocketlogger" Version="0.2.3" />
+  </ItemGroup>
+
+</Project>
