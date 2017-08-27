@@ -2,6 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.4</TargetFramework>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <Authors>jonsequitur</Authors>
+    <Product />
+    <Company />
+    <Description>Schedule commands. Deliver messages. Control the flow of time. Test in virtual time.</Description>
+    <PackageTags>messaging scheduler time-travel command-pattern command queue</PackageTags>
+    <PackageReleaseNotes>Clockwise is a command scheduling library with support for cancellation and retries, multi-step idempotency, and future scheduling. It comes with build-in in-memory implementations that can be used in-process as well as provide functionally equivalent test doubles for a storage-backed message queue.</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/jonsequitur/clockwise</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jonsequitur/clockwise</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
