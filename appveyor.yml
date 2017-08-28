@@ -9,11 +9,11 @@ before_build:
 
 build_script:
   - cmd: >-
-      dotnet build Clockwise.sln /p:Version=%APPVEYOR_BUILD_VERSION%
+      dotnet build Clockwise.sln /p:VersionSuffix=%APPVEYOR_BUILD_VERSION%
 
 after_build:
   - cmd: >-
-      dotnet pack .\Clockwise\Clockwise.csproj --no-build /p:Version=%APPVEYOR_BUILD_VERSION%
+      dotnet pack .\Clockwise\Clockwise.csproj --no-build /p:VersionSuffix=%APPVEYOR_BUILD_VERSION%
 
 test_script:
   - cmd: dotnet test .\Clockwise.Tests\Clockwise.Tests.csproj
