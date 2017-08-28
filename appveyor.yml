@@ -10,8 +10,6 @@ before_build:
 build_script:
   - cmd: >-
       dotnet build Clockwise.sln /p:VersionPrefix=%APPVEYOR_BUILD_VERSION%
-  - cmd: >-
-      dotnet build Clockwise.AzureServiceBus.sln /p:VersionPrefix=%APPVEYOR_BUILD_VERSION%
 
 after_build:
   - cmd: >-
