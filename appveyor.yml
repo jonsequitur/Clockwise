@@ -9,11 +9,13 @@ before_build:
 
 build_script:
   - cmd: >-
-      dotnet build Clockwise.sln /p:VersionSuffix=%APPVEYOR_BUILD_VERSION%
+      dotnet build Clockwise.sln /p:VersionPrefix=1.0.%APPVEYOR_BUILD_VERSION%
+      dotnet build Clockwise.AzureServiceBus.sln /p:VersionPrefix=1.0.%APPVEYOR_BUILD_VERSION%
 
 after_build:
   - cmd: >-
-      dotnet pack .\Clockwise\Clockwise.csproj --no-build /p:VersionSuffix=%APPVEYOR_BUILD_VERSION%
+      dotnet pack .\Clockwise\Clockwise.csproj --no-build /p:VersionPrefix=1.0.%APPVEYOR_BUILD_VERSION%
+      dotnet pack .\Clockwise.AzureServiceBus\Clockwise.AzureServiceBus.csproj --no-build /p:VersionPrefix=1.0.%APPVEYOR_BUILD_VERSION%
 
 test_script:
   - cmd: dotnet test .\Clockwise.Tests\Clockwise.Tests.csproj
