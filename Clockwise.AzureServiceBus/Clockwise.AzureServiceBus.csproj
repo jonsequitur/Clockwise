@@ -12,7 +12,7 @@
     <Authors>jonsequitur</Authors>
     <Product>Clockwise.AzureServiceBus</Product>
     <Company />
-    <Description>Azure Service Bus support for the Clockwork command scheduling library.</Description>
+    <Description>Azure Service Bus support for the Clockwise command scheduling library.</Description>
     <PackageTags>messaging scheduler command-pattern command queue Azure Service Bus</PackageTags>
     <PackageReleaseNotes></PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/jonsequitur/clockwise</PackageProjectUrl>
