@@ -98,7 +98,7 @@ namespace Clockwise.AzureServiceBus.Tests
 
             var namespaceName = "Clockwise-tests";
 
-            // FIX           var ns = await managementClient.Namespaces.CreateOrUpdateAsync(
+            //           var ns = await managementClient.Namespaces.CreateOrUpdateAsync(
             //                         "jonsequitur-dev",
             //                         namespaceName,
             //                         new SBNamespace
