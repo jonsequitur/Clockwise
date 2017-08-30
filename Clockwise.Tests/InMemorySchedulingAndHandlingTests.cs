@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Clockwise.Tests
 {
-    public class InMemoryCommandSchedulerTests : CommandSchedulerTests
+    public class InMemorySchedulingAndHandlingTests : SchedulingAndHandlingTests
     {
         private readonly VirtualClock virtualClock;
 
@@ -12,7 +12,7 @@ namespace Clockwise.Tests
 
         private readonly PocketContainer container = new PocketContainer();
 
-        public InMemoryCommandSchedulerTests(ITestOutputHelper output) : base(output)
+        public InMemorySchedulingAndHandlingTests(ITestOutputHelper output) : base(output)
         {
             virtualClock = VirtualClock.Start();
 

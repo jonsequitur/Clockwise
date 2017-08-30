@@ -8,11 +8,11 @@ using Xunit.Abstractions;
 
 namespace Clockwise.Tests
 {
-    public abstract class CommandSchedulerTests : IDisposable
+    public abstract class SchedulingAndHandlingTests : IDisposable
     {
         private readonly CompositeDisposable disposables = new CompositeDisposable();
 
-        protected CommandSchedulerTests(ITestOutputHelper output)
+        protected SchedulingAndHandlingTests(ITestOutputHelper output)
         {
             disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
             disposables.Add(Disposable.Create(Configuration.For<string>.Reset));

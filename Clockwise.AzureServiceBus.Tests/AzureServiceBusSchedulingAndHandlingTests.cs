@@ -17,12 +17,12 @@ using static Pocket.Logger;
 namespace Clockwise.AzureServiceBus.Tests
 {
     [TrackCurrentTest]
-    public class AzureServiceBusCommandBusTests : CommandSchedulerTests
+    public class AzureServiceBusSchedulingAndHandlingTests : SchedulingAndHandlingTests
     {
         private readonly ServiceBusSettings serviceBusSettings;
         private string queueName = "integration-tests";
 
-        public AzureServiceBusCommandBusTests(ITestOutputHelper output) : base(output)
+        public AzureServiceBusSchedulingAndHandlingTests(ITestOutputHelper output) : base(output)
         {
             var config = new ConfigurationBuilder()
                 .AddJsonFile(@"C:\dev\.config\ServiceBusSettings.json")
