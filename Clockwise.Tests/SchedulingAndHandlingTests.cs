@@ -353,14 +353,14 @@ namespace Clockwise.Tests
         }
 
         protected abstract void SubscribeHandler<T>(
-            Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle);
+            Func<ICommandDelivery<T>, ICommandDeliveryResult> handle);
 
         protected abstract ICommandScheduler<T> CreateScheduler<T>();
 
         protected abstract IClock Clock { get; }
 
         protected abstract ICommandHandler<T> CreateHandler<T>(
-            Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle);
+            Func<ICommandDelivery<T>, ICommandDeliveryResult> handle);
 
         protected abstract ICommandReceiver<T> CreateReceiver<T>();
     }

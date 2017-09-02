@@ -27,8 +27,8 @@ namespace Clockwise.AzureServiceBus
                                    throw new ArgumentNullException(nameof(messageReceiver));
         }
 
-        public async Task<CommandDeliveryResult<T>> Receive(
-            Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle,
+        public async Task<ICommandDeliveryResult> Receive(
+            Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
             TimeSpan? timeout = null)
         {
             var received = await messageReceiver.ReceiveAsync(
@@ -51,7 +51,7 @@ namespace Clockwise.AzureServiceBus
             await messageSender.SendAsync(delivery.ToMessage());
         }
 
-        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext)
+        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext)
         {
             if (onNext == null)
             {
@@ -88,8 +88,8 @@ namespace Clockwise.AzureServiceBus
             await Task.Yield();
         }
 
-        private async Task<CommandDeliveryResult<T>> HandleMessage(
-            Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext,
+        private async Task<ICommandDeliveryResult> HandleMessage(
+            Func<CommandDelivery<T>, Task<ICommandDeliveryResult>> onNext,
             Message message)
         {
             var commandDelivery = message.ToCommandDelivery<T>();

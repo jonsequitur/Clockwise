@@ -2,11 +2,12 @@ using System;
 
 namespace Clockwise
 {
-    public abstract class CommandDeliveryResult<T>
+    public class CommandDeliveryResult<T> : ICommandDeliveryResult
     {
-        protected CommandDeliveryResult(ICommandDelivery<T> delivery)
+        public CommandDeliveryResult(ICommandDelivery<T> delivery)
         {
-            Delivery = delivery ?? throw new ArgumentNullException(nameof(delivery));
+            Delivery = delivery ??
+                       throw new ArgumentNullException(nameof(delivery));
         }
 
         public ICommandDelivery<T> Delivery { get; }

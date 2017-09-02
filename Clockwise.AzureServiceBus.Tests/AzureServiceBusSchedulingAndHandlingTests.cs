@@ -70,13 +70,13 @@ namespace Clockwise.AzureServiceBus.Tests
             }
         }
 
-        protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             CommandHandler
                 .Create(handle)
                 .RetryOnException()
                 .Trace();
 
-        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             RegisterForDisposal(
                 CreateReceiver<T>().Subscribe<T>(
                     CreateHandler(handle)));

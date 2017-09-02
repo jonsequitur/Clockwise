@@ -39,12 +39,12 @@ namespace Clockwise.Tests
         protected override ICommandScheduler<T> CreateScheduler<T>() =>
             container.Resolve<ICommandScheduler<T>>();
 
-        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             RegisterForDisposal(
                 CreateReceiver<T>()
                     .Subscribe<T>(CreateHandler(handle)));
 
-        protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             CommandHandler
                 .Create(handle)
                 .RetryOnException()

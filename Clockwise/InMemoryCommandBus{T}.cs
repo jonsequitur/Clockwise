@@ -13,7 +13,7 @@ namespace Clockwise
     {
         private readonly VirtualClock clock;
 
-        private readonly List<Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>> subscribers = new List<Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>>();
+        private readonly List<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>> subscribers = new List<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>>();
 
         private readonly ConcurrentDictionary<string, ICommandDelivery<T>> pendingDeliveries = new ConcurrentDictionary<string, ICommandDelivery<T>>();
 
@@ -41,8 +41,8 @@ namespace Clockwise
                            after: item.DueTime);
         }
 
-        public async Task<CommandDeliveryResult<T>> Receive(
-            Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle,
+        public async Task<ICommandDeliveryResult> Receive(
+            Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
             TimeSpan? timeout = null)
         {
             timeout = timeout ??
@@ -52,7 +52,7 @@ namespace Clockwise
                 timeout,
                 clock.TimeUntilNextActionIsDue);
 
-            CommandDeliveryResult<T> result = null;
+            ICommandDeliveryResult result = null;
 
             using (Subscribe(async delivery =>
             {
@@ -66,7 +66,7 @@ namespace Clockwise
             return result;
         }
 
-        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext)
+        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext)
         {
             lock (subscribers)
             {
@@ -108,7 +108,7 @@ namespace Clockwise
                 {
                     case RetryDeliveryResult<T> retry:
                         clock.Schedule(async s => await Publish(item),
-                                       result.Delivery.DueTime);
+                                       item.DueTime);
                         break;
 
                     case CancelDeliveryResult<T> _:
@@ -120,9 +120,9 @@ namespace Clockwise
             }
         }
 
-        private Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>[] GetReceivers()
+        private Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>[] GetReceivers()
         {
-            Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>[] receivers;
+            Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>[] receivers;
 
             lock (subscribers)
             {
