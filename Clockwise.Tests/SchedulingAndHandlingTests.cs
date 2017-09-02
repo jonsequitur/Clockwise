@@ -25,7 +25,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task A_command_can_be_scheduled_for_asap_delivery()
         {
-            CommandDelivery<string> received = null;
+            ICommandDelivery<string> received = null;
 
             var scheduler = CreateScheduler<string>();
 
@@ -46,7 +46,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task A_command_can_be_scheduled_for_future_delivery()
         {
-            CommandDelivery<string> received = null;
+            ICommandDelivery<string> received = null;
 
             SubscribeHandler<string>(cmd =>
             {
@@ -353,14 +353,14 @@ namespace Clockwise.Tests
         }
 
         protected abstract void SubscribeHandler<T>(
-            Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle);
+            Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle);
 
         protected abstract ICommandScheduler<T> CreateScheduler<T>();
 
         protected abstract IClock Clock { get; }
 
         protected abstract ICommandHandler<T> CreateHandler<T>(
-            Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle);
+            Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle);
 
         protected abstract ICommandReceiver<T> CreateReceiver<T>();
     }

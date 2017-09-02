@@ -18,8 +18,13 @@ namespace Clockwise.Tests
 
             container
                 .Register(c => virtualClock)
+                .RegisterSingle(c => new InMemoryCommandBus<string>(virtualClock))
                 .RegisterGeneric(
-                    variantsOf: typeof(ICommandBus<>),
+                    variantsOf: typeof(ICommandReceiver<>),
+                    to: typeof(InMemoryCommandBus<>),
+                    singletons: true)
+                .RegisterGeneric(
+                    variantsOf: typeof(ICommandScheduler<>),
                     to: typeof(InMemoryCommandBus<>),
                     singletons: true);
 
@@ -28,18 +33,18 @@ namespace Clockwise.Tests
 
         protected override IClock Clock => virtualClock;
 
-        protected override ICommandScheduler<T> CreateScheduler<T>() =>
-            container.Resolve<ICommandBus<T>>();
-
         protected override ICommandReceiver<T> CreateReceiver<T>() =>
-            container.Resolve<ICommandBus<T>>();
+            container.Resolve<ICommandReceiver<T>>();
 
-        protected override void SubscribeHandler<T>(Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override ICommandScheduler<T> CreateScheduler<T>() =>
+            container.Resolve<ICommandScheduler<T>>();
+
+        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
             RegisterForDisposal(
-                container.Resolve<ICommandBus<T>>()
-                         .Subscribe(CreateHandler(handle)));
+                CreateReceiver<T>()
+                    .Subscribe<T>(CreateHandler(handle)));
 
-        protected override ICommandHandler<T> CreateHandler<T>(Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
             CommandHandler
                 .Create(handle)
                 .RetryOnException()

@@ -7,14 +7,15 @@ using Pocket;
 namespace Clockwise
 {
     public class InMemoryCommandBus<T> :
-        ICommandBus<T>,
+        ICommandReceiver<T>,
+        ICommandScheduler<T>,
         IDisposable
     {
         private readonly VirtualClock clock;
 
-        private readonly List<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>> subscribers = new List<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>>();
+        private readonly List<Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>> subscribers = new List<Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>>();
 
-        private readonly ConcurrentDictionary<string, CommandDelivery<T>> pendingDeliveries = new ConcurrentDictionary<string, CommandDelivery<T>>();
+        private readonly ConcurrentDictionary<string, ICommandDelivery<T>> pendingDeliveries = new ConcurrentDictionary<string, ICommandDelivery<T>>();
 
         private readonly ConcurrentSet<string> scheduledIdempotencyTokens = new ConcurrentSet<string>();
 
@@ -25,7 +26,7 @@ namespace Clockwise
             this.clock = clock;
         }
 
-        public async Task Schedule(CommandDelivery<T> item)
+        public async Task Schedule(ICommandDelivery<T> item)
         {
             await Task.Yield();
 
@@ -41,7 +42,7 @@ namespace Clockwise
         }
 
         public async Task<CommandDeliveryResult<T>> Receive(
-            Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle,
+            Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle,
             TimeSpan? timeout = null)
         {
             timeout = timeout ??
@@ -65,7 +66,7 @@ namespace Clockwise
             return result;
         }
 
-        public IDisposable Subscribe(Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext)
+        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext)
         {
             lock (subscribers)
             {
@@ -86,9 +87,9 @@ namespace Clockwise
             });
         }
 
-        public IEnumerable<CommandDelivery<T>> Undelivered() => pendingDeliveries.Values;
+        public IEnumerable<ICommandDelivery<T>> Undelivered() => pendingDeliveries.Values;
 
-        private async Task Publish(CommandDelivery<T> item)
+        private async Task Publish(ICommandDelivery<T> item)
         {
             var receivers = GetReceivers();
 
@@ -119,9 +120,9 @@ namespace Clockwise
             }
         }
 
-        private Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>[] GetReceivers()
+        private Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>[] GetReceivers()
         {
-            Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>[] receivers;
+            Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>[] receivers;
 
             lock (subscribers)
             {

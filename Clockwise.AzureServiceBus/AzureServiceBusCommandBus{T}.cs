@@ -8,7 +8,8 @@ using Pocket;
 namespace Clockwise.AzureServiceBus
 {
     public class AzureServiceBusCommandBus<T> : 
-        ICommandBus<T>,
+        ICommandReceiver<T>,
+        ICommandScheduler<T>,
         IDisposable
     {
         private readonly MessageSender messageSender;
@@ -27,7 +28,7 @@ namespace Clockwise.AzureServiceBus
         }
 
         public async Task<CommandDeliveryResult<T>> Receive(
-            Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle,
+            Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle,
             TimeSpan? timeout = null)
         {
             var received = await messageReceiver.ReceiveAsync(
@@ -45,12 +46,12 @@ namespace Clockwise.AzureServiceBus
             return null;
         }
 
-        public async Task Schedule(CommandDelivery<T> delivery)
+        public async Task Schedule(ICommandDelivery<T> delivery)
         {
             await messageSender.SendAsync(delivery.ToMessage());
         }
 
-        public IDisposable Subscribe(Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext)
+        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext)
         {
             if (onNext == null)
             {

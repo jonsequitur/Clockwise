@@ -9,16 +9,14 @@ namespace Clockwise
 
         public void Schedule(
             Action<IClock> action,
-            DateTimeOffset? after = null)
-        {
-            this.Schedule(
+            DateTimeOffset? after = null) =>
+            Schedule(
                 clock =>
                 {
                     action(clock);
                     return Task.FromResult(true);
                 },
                 after);
-        }
 
         public void Schedule(
             Func<IClock, Task> action,

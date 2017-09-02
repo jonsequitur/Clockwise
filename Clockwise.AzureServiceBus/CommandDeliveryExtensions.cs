@@ -6,7 +6,7 @@ namespace Clockwise.AzureServiceBus
 {
     public static class CommandDeliveryExtensions
     {
-        public static Message ToMessage<T>(this CommandDelivery<T> delivery)
+        public static Message ToMessage<T>(this ICommandDelivery<T> delivery)
         {
             var json = delivery.Command.ToJson();
 

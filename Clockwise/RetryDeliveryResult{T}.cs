@@ -5,12 +5,18 @@ namespace Clockwise
     public class RetryDeliveryResult<T> : CommandDeliveryResult<T>
     {
         public RetryDeliveryResult(
-            CommandDelivery<T> commandDelivery,
-            TimeSpan retryPeriod) : base(commandDelivery)
+            ICommandDelivery<T> delivery,
+            TimeSpan retryPeriod) : base(delivery)
         {
             RetryPeriod = retryPeriod;
 
-            commandDelivery.SignalRetry(RetryPeriod);
+            // FIX: (RetryDeliveryResult) this is ugly
+            switch (delivery)
+            {
+                case CommandDelivery<T> d:
+                    d.SignalRetry(RetryPeriod);
+                    break;
+            }
         }
 
         public TimeSpan RetryPeriod { get; }

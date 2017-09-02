@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Pocket;
 
@@ -8,9 +9,9 @@ namespace Clockwise
     {
         private static readonly Logger receiverLog = new Logger("CommandReceiver");
 
-        public static ICommandReceiver<T> Create<T>(
-            Func<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>, TimeSpan?, Task<CommandDeliveryResult<T>>> receive,
-            Func<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>, IDisposable> subscribe) =>
+        internal static ICommandReceiver<T> Create<T>(
+            Func<Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>, TimeSpan?, Task<CommandDeliveryResult<T>>> receive,
+            Func<Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>, IDisposable> subscribe) =>
             new AnonymousCommandReceiver<T>(receive, subscribe);
 
         public static async Task<CommandDeliveryResult<T>> Receive<T>(
@@ -23,16 +24,16 @@ namespace Clockwise
 
         public static async Task<CommandDeliveryResult<T>> Receive<T>(
             this ICommandReceiver<T> receiver,
-            Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle,
+            Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle,
             TimeSpan? timeout = null) =>
             await receiver.Receive(
                 async delivery => await Task.Run(() => handle(delivery)),
                 timeout);
 
         public static IDisposable Subscribe<T>(
-            this ICommandReceiver<T> bus,
+            this ICommandReceiver<T> receiver,
             ICommandHandler<T> handler) =>
-            bus.Subscribe(async delivery => await handler.Handle(delivery));
+            receiver.Subscribe(async delivery => await handler.Handle(delivery));
 
         public static ICommandReceiver<T> Trace<T>(
             this ICommandReceiver<T> receiver) =>

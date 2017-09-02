@@ -10,7 +10,7 @@ namespace Clockwise
 
         internal static ConfirmationLogger CommandDelivery<T>(
             this Logger logger,
-            CommandDelivery<T> delivery) =>
+            ICommandDelivery<T> delivery) =>
             new ConfirmationLogger(
                 $"Handle:{typeof(T).Name}",
                 logger.Category,
@@ -18,13 +18,13 @@ namespace Clockwise
                 null,
                 true);
 
-        public static ICommandHandler<T> Create<T>(Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle) =>
+        public static ICommandHandler<T> Create<T>(Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle) =>
             new AnonymousCommandHandler<T>(handle);
 
-        public static ICommandHandler<T> Create<T>(Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        public static ICommandHandler<T> Create<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
             new AnonymousCommandHandler<T>(d => Task.Run(() => handle(d)));
 
-        public static ICommandHandler<T> Create<T>(Action<CommandDelivery<T>> handle) =>
+        public static ICommandHandler<T> Create<T>(Action<ICommandDelivery<T>> handle) =>
             new AnonymousCommandHandler<T>(delivery =>
             {
                 handle(delivery);
@@ -102,19 +102,19 @@ namespace Clockwise
     }
 
     public delegate Task<CommandDeliveryResult<T>> CommandHandlingMiddleware<T>(
-        CommandDelivery<T> delivery,
-        Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> next);
+        ICommandDelivery<T> delivery,
+        Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> next);
 
     public delegate Task CommandSchedulingMiddleware<T>(
-        CommandDelivery<T> delivery,
-        Func<CommandDelivery<T>, Task> next);
+        ICommandDelivery<T> delivery,
+        Func<ICommandDelivery<T>, Task> next);
 
     public delegate IDisposable CommandSubscribingMiddleware<T>(
-        Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext,
-        Func<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>, IDisposable> next);
+        Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext,
+        Func<Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>, IDisposable> next);
 
     public delegate Task<CommandDeliveryResult<T>> CommandReceivingMiddleware<T>(
-        Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle,
+        Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle,
         TimeSpan? timeout,
-        Func<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>, TimeSpan?, Task<CommandDeliveryResult<T>>> next);
+        Func<Func<ICommandDelivery<T>, Task<CommandDeliveryResult<T>>>, TimeSpan?, Task<CommandDeliveryResult<T>>> next);
 }

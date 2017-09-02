@@ -5,7 +5,7 @@ namespace Clockwise
     public class CancelDeliveryResult<T> : CommandDeliveryResult<T>
     {
         public CancelDeliveryResult(
-            CommandDelivery<T> commandDelivery,
+            ICommandDelivery<T> commandDelivery,
             string reason = null,
             Exception exception = null) : base(commandDelivery)
         {
@@ -14,6 +14,7 @@ namespace Clockwise
         }
 
         public string Reason { get; }
+
         public Exception Exception { get; }
     }
 }

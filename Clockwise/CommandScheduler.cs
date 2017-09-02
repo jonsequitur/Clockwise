@@ -9,10 +9,10 @@ namespace Clockwise
         private static readonly Logger schedulerLog = new Logger();
 
         public static ICommandScheduler<T> Create<T>(
-            Func<CommandDelivery<T>, Task> handle) =>
+            Func<ICommandDelivery<T>, Task> handle) =>
             new AnonymousCommandScheduler<T>(handle);
 
-        public static ICommandScheduler<T> Create<T>(Action<CommandDelivery<T>> handle) =>
+        public static ICommandScheduler<T> Create<T>(Action<ICommandDelivery<T>> handle) =>
             new AnonymousCommandScheduler<T>(delivery =>
             {
                 handle(delivery);

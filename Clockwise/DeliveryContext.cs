@@ -72,9 +72,16 @@ namespace Clockwise
             }
 
             public string Id { get; }
+
+            public DateTimeOffset? DueTime { get; }
+
             public DateTimeOffset? OriginalDueTime { get; }
+
             public int NumberOfPreviousAttempts { get; }
+
             public string IdempotencyToken { get; }
+
+            public IDictionary<string, object> Properties { get; }
         }
 
         private class TokenSequence

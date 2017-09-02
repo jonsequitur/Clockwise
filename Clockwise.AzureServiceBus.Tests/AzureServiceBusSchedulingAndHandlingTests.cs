@@ -70,15 +70,15 @@ namespace Clockwise.AzureServiceBus.Tests
             }
         }
 
-        protected override ICommandHandler<T> CreateHandler<T>(Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
             CommandHandler
                 .Create(handle)
                 .RetryOnException()
                 .Trace();
 
-        protected override void SubscribeHandler<T>(Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
             RegisterForDisposal(
-                CreateReceiver<T>().Subscribe(
+                CreateReceiver<T>().Subscribe<T>(
                     CreateHandler(handle)));
 
         private async Task EnsureQueueExists()
@@ -169,7 +169,7 @@ namespace Clockwise.AzureServiceBus.Tests
         [Fact]
         public async Task The_Service_Bus_Message_is_available_as_a_property()
         {
-            CommandDelivery<string> received = null;
+            ICommandDelivery<string> received = null;
 
             var handler = CreateHandler<string>(cmd =>
             {
