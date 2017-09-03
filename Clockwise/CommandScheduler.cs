@@ -37,6 +37,8 @@ namespace Clockwise
                 using (new OperationLogger(
                     "Schedule",
                     "CommandScheduler",
+                    message: "{delivery}",
+                    args: new object[] { delivery }, 
                     logOnStart: true))
                 {
                     await next(delivery);
