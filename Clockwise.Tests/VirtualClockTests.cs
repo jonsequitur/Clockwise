@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Pocket;
 using Xunit;
 
 namespace Clockwise.Tests
@@ -264,6 +266,34 @@ namespace Clockwise.Tests
             using (var clock = VirtualClock.Start())
             {
                 clock.TimeUntilNextActionIsDue.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void VirtualClock_logs_the_time_on_start()
+        {
+            var startTime = DateTimeOffset.Parse("9/2/2017 12:03:04pm");
+            var log = new List<string>();
+
+            using (LogEvents.Subscribe(e => log.Add(e.ToLogString())))
+            using (VirtualClock.Start(startTime))
+            {
+                log.Single().Should().Match($"*[Clockwise.VirtualClock]*Starting at {startTime}*");
+            }
+        }
+
+        [Fact]
+        public async Task When_advanced_it_logs_the_time_and_ticks()
+        {
+            var startTime = DateTimeOffset.Parse("9/2/2017 12:03:04pm");
+            var log = new List<string>();
+
+            using (LogEvents.Subscribe(e => log.Add(e.ToLogString())))
+            using (var clock = VirtualClock.Start(startTime))
+            {
+                await clock.AdvanceBy(1.Milliseconds());
+
+                log.Last().Should().Match($"*[Clockwise.VirtualClock]*Advancing to {clock.Now()} ({clock.Now().Ticks})*");
             }
         }
     }

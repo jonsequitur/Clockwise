@@ -5,13 +5,13 @@ namespace Clockwise
 {
     internal class AnonymousCommandReceiver<T> : ICommandReceiver<T>
     {
-        private readonly Func<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>, TimeSpan?, Task<CommandDeliveryResult<T>>> receive;
+        private readonly Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> receive;
 
-        private readonly Func<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>, IDisposable> subscribe;
+        private readonly Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> subscribe;
 
         public AnonymousCommandReceiver(
-            Func<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>, TimeSpan?, Task<CommandDeliveryResult<T>>> receive,
-            Func<Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>>, IDisposable> subscribe)
+            Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
+            Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> subscribe)
         {
             this.subscribe = subscribe ??
                              throw new ArgumentNullException(nameof(subscribe));
@@ -20,9 +20,14 @@ namespace Clockwise
                            throw new ArgumentNullException(nameof(receive));
         }
 
-        public IDisposable Subscribe(Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> onNext) => subscribe(onNext);
+        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext)
+        {
+            return subscribe(onNext);
+        }
 
-        public async Task<CommandDeliveryResult<T>> Receive(Func<CommandDelivery<T>, Task<CommandDeliveryResult<T>>> handle, TimeSpan? timeout = null) =>
-            await receive(handle, timeout);
+        public async Task<ICommandDeliveryResult> Receive(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle, TimeSpan? timeout = null)
+        {
+            return await receive(handle, timeout);
+        }
     }
 }

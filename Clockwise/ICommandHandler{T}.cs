@@ -4,6 +4,6 @@ namespace Clockwise
 {
     public interface ICommandHandler<T>
     {
-        Task<CommandDeliveryResult<T>> Handle(CommandDelivery<T> delivery);
+        Task<ICommandDeliveryResult> Handle(ICommandDelivery<T> delivery);
     }
 }

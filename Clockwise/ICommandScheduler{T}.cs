@@ -5,6 +5,6 @@ namespace Clockwise
 {
     public interface ICommandScheduler<T>
     {
-        Task Schedule(CommandDelivery<T> delivery);
+        Task Schedule(ICommandDelivery<T> delivery);
     }
 }

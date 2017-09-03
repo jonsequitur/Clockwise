@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Clockwise.Tests
 {
-    public class InMemoryCommandSchedulerTests : CommandSchedulerTests
+    public class InMemorySchedulingAndHandlingTests : SchedulingAndHandlingTests
     {
         private readonly VirtualClock virtualClock;
 
@@ -12,14 +12,19 @@ namespace Clockwise.Tests
 
         private readonly PocketContainer container = new PocketContainer();
 
-        public InMemoryCommandSchedulerTests(ITestOutputHelper output) : base(output)
+        public InMemorySchedulingAndHandlingTests(ITestOutputHelper output) : base(output)
         {
             virtualClock = VirtualClock.Start();
 
             container
                 .Register(c => virtualClock)
+                .RegisterSingle(c => new InMemoryCommandBus<string>(virtualClock))
                 .RegisterGeneric(
-                    variantsOf: typeof(ICommandBus<>),
+                    variantsOf: typeof(ICommandReceiver<>),
+                    to: typeof(InMemoryCommandBus<>),
+                    singletons: true)
+                .RegisterGeneric(
+                    variantsOf: typeof(ICommandScheduler<>),
                     to: typeof(InMemoryCommandBus<>),
                     singletons: true);
 
@@ -28,18 +33,18 @@ namespace Clockwise.Tests
 
         protected override IClock Clock => virtualClock;
 
-        protected override ICommandScheduler<T> CreateScheduler<T>() =>
-            container.Resolve<ICommandBus<T>>();
-
         protected override ICommandReceiver<T> CreateReceiver<T>() =>
-            container.Resolve<ICommandBus<T>>();
+            container.Resolve<ICommandReceiver<T>>();
 
-        protected override void SubscribeHandler<T>(Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override ICommandScheduler<T> CreateScheduler<T>() =>
+            container.Resolve<ICommandScheduler<T>>();
+
+        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             RegisterForDisposal(
-                container.Resolve<ICommandBus<T>>()
-                         .Subscribe(CreateHandler(handle)));
+                CreateReceiver<T>()
+                    .Subscribe<T>(CreateHandler(handle)));
 
-        protected override ICommandHandler<T> CreateHandler<T>(Func<CommandDelivery<T>, CommandDeliveryResult<T>> handle) =>
+        protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             CommandHandler
                 .Create(handle)
                 .RetryOnException()

@@ -5,12 +5,12 @@ namespace Clockwise
 {
     internal class AnonymousCommandScheduler<T> : ICommandScheduler<T>
     {
-        private readonly Func<CommandDelivery<T>, Task> handle;
+        private readonly Func<ICommandDelivery<T>, Task> handle;
 
-        public AnonymousCommandScheduler(Func<CommandDelivery<T>, Task> handle) =>
+        public AnonymousCommandScheduler(Func<ICommandDelivery<T>, Task> handle) =>
             this.handle = handle ?? throw new ArgumentNullException(nameof(handle));
 
-        public async Task Schedule(CommandDelivery<T> delivery) =>
+        public async Task Schedule(ICommandDelivery<T> delivery) =>
             await handle(delivery);
     }
 }

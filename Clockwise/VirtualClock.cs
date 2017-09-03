@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Pocket;
+using static Pocket.Logger<Clockwise.VirtualClock>;
 
 namespace Clockwise
 {
@@ -33,6 +34,8 @@ namespace Clockwise
                 throw new InvalidOperationException("A virtual clock cannot be started while another is still active in the current context.");
             }
 
+            Log.Trace("Starting at {now}", now);
+
             return new VirtualClock(now);
         }
 
@@ -47,6 +50,8 @@ namespace Clockwise
                 throw new ArgumentException("The clock cannot be moved backward in time.");
             }
 
+            Log.Trace("Advancing to {time} ({ticks})", time, time.Ticks);
+
             while (true)
             {
                 var due = DueBetween(now, time).ToArray();
@@ -58,10 +63,9 @@ namespace Clockwise
 
                 now = due[0].Key;
 
-                Logger<VirtualClock>.Log.Trace("@ {ticks}", now.Ticks);
-
                 due[0].Value?.Invoke(this);
             }
+
 
             now = time;
         }

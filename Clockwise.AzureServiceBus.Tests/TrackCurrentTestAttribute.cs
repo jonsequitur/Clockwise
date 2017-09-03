@@ -2,9 +2,9 @@ using System.Reflection;
 using System.Threading;
 using Xunit.Sdk;
 
-namespace Clockwise.Tests
+namespace Clockwise.AzureServiceBus.Tests
 {
-    public class TrackCurrentTestAttribute : BeforeAfterTestAttribute
+    internal class TrackCurrentTestAttribute : BeforeAfterTestAttribute
     {
         private static readonly AsyncLocal<string> currentTestName = new AsyncLocal<string>();
 

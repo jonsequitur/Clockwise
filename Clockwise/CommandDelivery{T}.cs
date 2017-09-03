@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Clockwise
 {
-    public class CommandDelivery<T> : ICommandDelivery
+    public class CommandDelivery<T> : ICommandDelivery<T>
     {
         public CommandDelivery(
             T command,
