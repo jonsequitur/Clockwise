@@ -66,7 +66,6 @@ namespace Clockwise
                 due[0].Value?.Invoke(this);
             }
 
-
             now = time;
         }
 

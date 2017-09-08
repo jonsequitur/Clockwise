@@ -78,7 +78,7 @@ namespace Clockwise.AzureServiceBus.Tests
 
         protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             RegisterForDisposal(
-                CreateReceiver<T>().Subscribe<T>(
+                CreateReceiver<T>().Subscribe(
                     CreateHandler(handle)));
 
         private async Task EnsureQueueExists()

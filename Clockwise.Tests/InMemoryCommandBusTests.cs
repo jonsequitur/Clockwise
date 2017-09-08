@@ -20,7 +20,7 @@ namespace Clockwise.Tests
                     Console.WriteLine();
                 });
 
-                bus.Subscribe<string>(handler);
+                bus.Subscribe(handler);
 
                 await bus.Schedule("delivered",
                                    dueTime: clock.Now().AddDays(1));

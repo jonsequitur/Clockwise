@@ -14,7 +14,7 @@ namespace Clockwise
                 clock =>
                 {
                     action(clock);
-                    return Task.FromResult(true);
+                    return Task.CompletedTask;
                 },
                 after);
 
