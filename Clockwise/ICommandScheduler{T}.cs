@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public interface ICommandScheduler<T>
+    public interface ICommandScheduler<in T>
     {
         Task Schedule(ICommandDelivery<T> delivery);
     }

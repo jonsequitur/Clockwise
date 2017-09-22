@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public interface ICommandReceiver<T>
+    public interface ICommandReceiver<out T>
     {
         IDisposable Subscribe(
             Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext);
