@@ -46,7 +46,7 @@ namespace Clockwise
             TimeSpan? timeout = null)
         {
             timeout = timeout ??
-                      Configuration.For<T>.Default.ReceiveTimeout;
+                      Settings.For<T>.Default.ReceiveTimeout;
 
             var howFarToAdvance = ShorterOf(
                 timeout,

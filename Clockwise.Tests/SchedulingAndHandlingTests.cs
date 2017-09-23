@@ -15,7 +15,7 @@ namespace Clockwise.Tests
         protected SchedulingAndHandlingTests(ITestOutputHelper output)
         {
             disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
-            disposables.Add(Disposable.Create(Configuration.For<string>.Reset));
+            disposables.Add(Disposable.Create(Settings.For<string>.Reset));
         }
 
         public virtual void Dispose() => disposables.Dispose();
@@ -191,7 +191,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task When_an_exception_is_thrown_too_many_times_then_the_command_will_not_be_retried()
         {
-            Configuration.For<string>.Default.RetryPolicy = 
+            Settings.For<string>.Default.RetryPolicy = 
                 new RetryPolicy(previousAttempts =>
                 {
                     if (previousAttempts < 1)

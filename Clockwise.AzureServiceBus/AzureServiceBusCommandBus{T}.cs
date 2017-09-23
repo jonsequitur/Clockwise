@@ -34,7 +34,7 @@ namespace Clockwise.AzureServiceBus
             var received = await messageReceiver.ReceiveAsync(
                                1,
                                timeout ??
-                               Configuration.For<T>.Default.ReceiveTimeout);
+                               Settings.For<T>.Default.ReceiveTimeout);
 
             var message = received?.SingleOrDefault();
 

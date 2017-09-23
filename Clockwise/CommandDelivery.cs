@@ -19,7 +19,7 @@ namespace Clockwise
             TimeSpan? after = null) =>
             new RetryDeliveryResult<T>(
                 commandDelivery, after ??
-                                 Configuration.For<T>
+                                 Settings.For<T>
                                               .Default
                                               .RetryPolicy
                                               .RetryPeriodAfter(commandDelivery.NumberOfPreviousAttempts) ??
