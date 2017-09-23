@@ -1,18 +1,33 @@
 using System;
+using System.Collections.Generic;
+using Pocket;
 
 namespace Clockwise
 {
-    public class Configuration
+    public class Configuration : IDisposable
     {
-        public static class For<T>
-        {
-            public static Configuration Default { get; set; } = new Configuration();
+        private readonly CompositeDisposable disposables = new CompositeDisposable();
 
-            public static void Reset() => Default = new Configuration();
+        public Configuration()
+        {
+            Container = new PocketContainer()
+                .Register(c => Clock.Current)
+                .Register(c => Clock.Current as VirtualClock ??
+                               VirtualClock.Start());
         }
 
-        public TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromHours(1);
+        internal PocketContainer Container { get; }
 
-        public RetryPolicy RetryPolicy { get; set; } = new RetryPolicy();
+        public ICommandReceiver<T> CommandReceiver<T>() =>
+            Container.Resolve<ICommandReceiver<T>>();
+
+        public ICommandScheduler<T> CommandScheduler<T>() =>
+            Container.Resolve<ICommandScheduler<T>>();
+
+        public void RegisterForDisposal(IDisposable disposable) => disposables.Add(disposable);
+
+        internal List<CommandHandlerDescription> CommandHandlerDescriptions { get; } = new List<CommandHandlerDescription>();
+
+        public void Dispose() => disposables.Dispose();
     }
 }

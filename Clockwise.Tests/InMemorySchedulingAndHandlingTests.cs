@@ -42,7 +42,7 @@ namespace Clockwise.Tests
         protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             RegisterForDisposal(
                 CreateReceiver<T>()
-                    .Subscribe<T>(CreateHandler(handle)));
+                    .Subscribe(CreateHandler(handle)));
 
         protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             CommandHandler

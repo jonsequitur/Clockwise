@@ -41,7 +41,7 @@ namespace Clockwise
                 }
                 catch (Exception exception)
                 {
-                    var retryPolicy = Configuration.For<T>.Default.RetryPolicy;
+                    var retryPolicy = Settings.For<T>.Default.RetryPolicy;
 
                     var retryPeriod = retryPolicy.RetryPeriodAfter(delivery.NumberOfPreviousAttempts);
 

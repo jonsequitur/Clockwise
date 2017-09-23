@@ -28,7 +28,7 @@ namespace Clockwise.AzureServiceBus.Tests
                 .AddJsonFile(@"C:\dev\.config\ServiceBusSettings.json")
                 .Build();
 
-            Configuration.For<string>.Default = new Configuration
+            Settings.For<string>.Default = new Settings
             {
                 RetryPolicy = new RetryPolicy(i => 5.Seconds()),
                 ReceiveTimeout = 6.Seconds()
@@ -76,10 +76,11 @@ namespace Clockwise.AzureServiceBus.Tests
                 .RetryOnException()
                 .Trace();
 
-        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
+        protected override void SubscribeHandler<T>(
+            Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             RegisterForDisposal(
-                CreateReceiver<T>().Subscribe<T>(
-                    CreateHandler(handle)));
+                CreateReceiver<T>().Subscribe(
+                    CreateHandler(handle))) ;
 
         private async Task EnsureQueueExists()
         {
