@@ -33,7 +33,7 @@ namespace Clockwise
         public static IDisposable Subscribe<TReceive, THandle>(
             this ICommandReceiver<TReceive> receiver,
             ICommandHandler<THandle> handler)
-            where THandle : TReceive
+            where THandle : class, TReceive
         {
             async Task<ICommandDeliveryResult> OnNext(ICommandDelivery<TReceive> delivery)
             {
@@ -41,8 +41,21 @@ namespace Clockwise
                 {
                     case ICommandDelivery<THandle> handled:
                         return await handler.Handle(handled);
+
                     default:
-                        return await ((dynamic) handler).Handle((dynamic) delivery);
+                        if (!(delivery.Command is THandle command))
+                        {
+                            return null;
+                        }
+
+                        var clone = new CommandDelivery<THandle>(
+                            command,
+                            delivery.DueTime,
+                            delivery.OriginalDueTime,
+                            delivery.IdempotencyToken,
+                            delivery.NumberOfPreviousAttempts);
+
+                        return await handler.Handle(clone);
                 }
             }
 

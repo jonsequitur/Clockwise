@@ -353,7 +353,8 @@ namespace Clockwise.Tests
         }
 
         protected abstract void SubscribeHandler<T>(
-            Func<ICommandDelivery<T>, ICommandDeliveryResult> handle);
+            Func<ICommandDelivery<T>, ICommandDeliveryResult> handle)
+            where T : class;
 
         protected abstract ICommandScheduler<T> CreateScheduler<T>();
 

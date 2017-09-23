@@ -76,10 +76,11 @@ namespace Clockwise.AzureServiceBus.Tests
                 .RetryOnException()
                 .Trace();
 
-        protected override void SubscribeHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
+        protected override void SubscribeHandler<T>(
+            Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
             RegisterForDisposal(
                 CreateReceiver<T>().Subscribe(
-                    CreateHandler(handle)));
+                    CreateHandler(handle))) ;
 
         private async Task EnsureQueueExists()
         {

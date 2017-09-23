@@ -10,12 +10,9 @@ namespace Clockwise
         {
             RetryPeriod = retryPeriod;
 
-            // FIX: (RetryDeliveryResult) this is ugly
-            switch (delivery)
+            if (delivery is CommandDelivery<T> d)
             {
-                case CommandDelivery<T> d:
-                    d.SignalRetry(RetryPeriod);
-                    break;
+                d.SignalRetry(RetryPeriod);
             }
         }
 
