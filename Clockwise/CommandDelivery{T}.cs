@@ -15,6 +15,7 @@ namespace Clockwise
             Command = command;
 
             IdempotencyToken = idempotencyToken ??
+                               (command as IIdempotent)?.IdempotencyToken ?? 
                                DeliveryContext.Current?.NextToken("") ??
                                Guid.NewGuid().ToString().ToToken();
 

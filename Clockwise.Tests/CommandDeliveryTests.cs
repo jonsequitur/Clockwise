@@ -43,5 +43,16 @@ namespace Clockwise.Tests
 
             token2.Should().Be(token1);
         }
+
+        [Fact]
+        public void Command_objects_can_specify_idempotency_token_by_implementing_IIdempotent()
+        {
+            var command = new CreateCommandTarget(Guid.NewGuid().ToString());
+
+            var delivery1 = new CommandDelivery<CreateCommandTarget>(command);
+            var delivery2 = new CommandDelivery<CreateCommandTarget>(command);
+
+            delivery1.IdempotencyToken.Should().Be(delivery2.IdempotencyToken);
+        }
     }
 }

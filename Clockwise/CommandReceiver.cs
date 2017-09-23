@@ -30,33 +30,23 @@ namespace Clockwise
                 async delivery => await Task.Run(() => handle(delivery)),
                 timeout);
 
-        public static IDisposable Subscribe<T>(
-            this ICommandReceiver<T> receiver,
-            ICommandHandler<T> handler) =>
-            receiver.Subscribe(async delivery => await handler.Handle(delivery));
-
         public static IDisposable Subscribe<TReceive, THandle>(
             this ICommandReceiver<TReceive> receiver,
             ICommandHandler<THandle> handler)
             where THandle : TReceive
         {
-            return receiver.Subscribe(async delivery =>
+            async Task<ICommandDeliveryResult> OnNext(ICommandDelivery<TReceive> delivery)
             {
                 switch (delivery)
                 {
-                    case ICommandDelivery<THandle> toBeHandled:
-                        return await handler.Handle(toBeHandled);
-                        break;
+                    case ICommandDelivery<THandle> handled:
+                        return await handler.Handle(handled);
+                    default:
+                        return await ((dynamic) handler).Handle((dynamic) delivery);
                 }
+            }
 
-                await Task.Yield();
-
-                return null;
-            });
-
-            return Disposable.Create(() =>
-            {
-            });
+            return receiver.Subscribe(OnNext);
         }
 
         public static ICommandReceiver<T> Trace<T>(
@@ -83,10 +73,7 @@ namespace Clockwise
             CommandSubscribingMiddleware<T> subscribe) =>
             Create<T>(
                 receive:
-                (handle, timeout) =>
-                {
-                    return receive(handle, timeout, receiver.Receive);
-                },
+                (handle, timeout) => receive(handle, timeout, receiver.Receive),
                 subscribe: onNext => subscribe(onNext, receiver.Subscribe));
     }
 }
