@@ -14,6 +14,11 @@ namespace Clockwise
                 .Register(c => Clock.Current)
                 .Register(c => Clock.Current as VirtualClock ??
                                VirtualClock.Start());
+
+            Container.OnFailedResolve =
+                (type, exception) =>
+                    new ConfigurationException(
+                        $"Clockwise can't create an instance of {type} unless you register it first via Configuration.UseDependency or Configuration.UseDependencies.", exception);
         }
 
         internal PocketContainer Container { get; }
