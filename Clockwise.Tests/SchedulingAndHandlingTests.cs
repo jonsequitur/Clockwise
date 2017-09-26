@@ -58,7 +58,7 @@ namespace Clockwise.Tests
 
             await scheduler.Schedule(
                 "hello eventually!",
-                dueTime: Clock.Now().AddSeconds(10));
+                10.Seconds());
 
             await Clock.Wait(5.Seconds());
 

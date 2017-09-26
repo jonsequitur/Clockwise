@@ -30,6 +30,15 @@ namespace Clockwise
                     dueTime,
                     idempotencyToken: idempotencyToken));
 
+        public static async Task Schedule<T>(
+            this ICommandScheduler<T> scheduler,
+            T command,
+            TimeSpan after,
+            string idempotencyToken = null) =>
+            await scheduler.Schedule(
+                command,
+                Clock.Current.Now().Add(after));
+
         public static ICommandScheduler<T> Trace<T>(
             this ICommandScheduler<T> scheduler) =>
             scheduler.UseMiddleware(async (delivery, next) =>
@@ -38,7 +47,7 @@ namespace Clockwise
                     "Schedule",
                     "CommandScheduler",
                     message: "{delivery}",
-                    args: new object[] { delivery }, 
+                    args: new object[] { delivery },
                     logOnStart: true))
                 {
                     await next(delivery);
