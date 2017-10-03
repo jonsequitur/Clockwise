@@ -20,9 +20,9 @@ namespace Clockwise
             new RetryDeliveryResult<T>(
                 commandDelivery, after ??
                                  Settings.For<T>
-                                              .Default
-                                              .RetryPolicy
-                                              .RetryPeriodAfter(commandDelivery.NumberOfPreviousAttempts) ??
+                                         .Default
+                                         .RetryPolicy
+                                         .RetryPeriodAfter(commandDelivery.NumberOfPreviousAttempts) ??
                                  throw new ArgumentException("No more retries available"));
     }
 }

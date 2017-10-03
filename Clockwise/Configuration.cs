@@ -23,11 +23,31 @@ namespace Clockwise
 
         internal PocketContainer Container { get; }
 
-        public ICommandReceiver<T> CommandReceiver<T>() =>
-            Container.Resolve<ICommandReceiver<T>>();
+        internal ConfigurationProperties Properties { get; } = new ConfigurationProperties();
 
-        public ICommandScheduler<T> CommandScheduler<T>() =>
-            Container.Resolve<ICommandScheduler<T>>();
+        public ICommandReceiver<T> CommandReceiver<T>()
+        {
+            var receiver = Container.Resolve<ICommandReceiver<T>>();
+
+            if (Properties.TracingEnabled)
+            {
+                receiver = receiver.Trace();
+            }
+
+            return receiver;
+        }
+
+        public ICommandScheduler<T> CommandScheduler<T>()
+        {
+            var scheduler = Container.Resolve<ICommandScheduler<T>>();
+
+            if (Properties.TracingEnabled)
+            {
+                scheduler = scheduler.Trace();
+            }
+
+            return scheduler;
+        }
 
         public void RegisterForDisposal(IDisposable disposable) => disposables.Add(disposable);
 

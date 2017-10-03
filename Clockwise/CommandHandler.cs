@@ -6,18 +6,6 @@ namespace Clockwise
 {
     public static class CommandHandler
     {
-        private static readonly Logger handlerLog = new Logger("CommandHandler");
-
-        internal static ConfirmationLogger CommandDelivery<T>(
-            this Logger logger,
-            ICommandDelivery<T> delivery) =>
-            new ConfirmationLogger(
-                $"Handle:{typeof(T).Name}",
-                logger.Category,
-                null,
-                null,
-                true);
-
         public static ICommandHandler<T> Create<T>(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle) =>
             new AnonymousCommandHandler<T>(handle);
 
@@ -64,7 +52,11 @@ namespace Clockwise
             this ICommandHandler<T> handler) =>
             handler.UseMiddleware(async (delivery, next) =>
             {
-                using (var operation = handlerLog.CommandDelivery(delivery))
+                using (var operation = new ConfirmationLogger(
+                    operationName: "Handle",
+                    category: $"CommandHandler<{typeof(T).Name}>",
+                    message: delivery.Command.ToLogString(),
+                    logOnStart: true))
                 {
                     var result = await next(delivery);
 

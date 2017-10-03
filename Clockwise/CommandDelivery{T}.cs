@@ -15,7 +15,7 @@ namespace Clockwise
             Command = command;
 
             IdempotencyToken = idempotencyToken ??
-                               (command as IIdempotent)?.IdempotencyToken ?? 
+                               (command as IIdempotent)?.IdempotencyToken ??
                                DeliveryContext.Current?.NextToken("") ??
                                Guid.NewGuid().ToString().ToToken();
 
@@ -46,5 +46,13 @@ namespace Clockwise
 
             DueTime = (DueTime ?? Clock.Now()) + after;
         }
+
+        public override string ToString() =>
+            string.Format("{0} ({1}) {2}",
+                          Command,
+                          IdempotencyToken,
+                          DueTime == null
+                              ? ""
+                              : $"due {DueTime}");
     }
 }
