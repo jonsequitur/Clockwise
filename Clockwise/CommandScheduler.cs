@@ -6,8 +6,6 @@ namespace Clockwise
 {
     public static class CommandScheduler
     {
-        private static readonly Logger schedulerLog = new Logger();
-
         public static ICommandScheduler<T> Create<T>(
             Func<ICommandDelivery<T>, Task> handle) =>
             new AnonymousCommandScheduler<T>(handle);
@@ -45,7 +43,7 @@ namespace Clockwise
             {
                 using (new OperationLogger(
                     "Schedule",
-                    "CommandScheduler",
+                    $"CommandScheduler<{typeof(T).Name}>",
                     message: "{delivery}",
                     args: new object[] { delivery },
                     logOnStart: true))
@@ -60,5 +58,7 @@ namespace Clockwise
             Create<T>(async delivery => await middleware(
                                             delivery,
                                             async d => await scheduler.Schedule(d)));
+
+     
     }
 }

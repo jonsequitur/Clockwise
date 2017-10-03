@@ -7,8 +7,6 @@ namespace Clockwise
 {
     public static class CommandReceiver
     {
-        private static readonly Logger receiverLog = new Logger("CommandReceiver");
-
         internal static ICommandReceiver<T> Create<T>(
             Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
             Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> subscribe) =>
@@ -67,16 +65,29 @@ namespace Clockwise
             receiver.UseMiddleware(
                 receive: async (handle, timeout, next) =>
                 {
-                    using (receiverLog.OnEnterAndExit("Receive"))
+                    ICommandDelivery<T> delivery = null;
+
+                    using (For<T>.Log("Receive",
+                                      () => new (string, object)[] { ("delivery", delivery) }))
                     {
-                        return await next(handle, timeout);
+                        return await next(d =>
+                        {
+                            delivery = d;
+                            return handle(d);
+                        }, timeout);
                     }
                 },
                 subscribe: (onNext, next) =>
                 {
-                    using (receiverLog.OnEnterAndExit("Subscribe"))
+                    using (For<T>.Log("Subscribe"))
                     {
-                        return next(onNext);
+                        return next(delivery =>
+                        {
+                            using (For<T>.Log("Receive", args: new object[] { delivery }))
+                            {
+                                return onNext(delivery);
+                            }
+                        });
                     }
                 });
 
@@ -86,7 +97,28 @@ namespace Clockwise
             CommandSubscribingMiddleware<T> subscribe) =>
             Create<T>(
                 receive:
-                (handle, timeout) => receive(handle, timeout, receiver.Receive),
-                subscribe: onNext => subscribe(onNext, receiver.Subscribe));
+                (handle, timeout) =>
+                {
+                    return receive(handle, timeout, receiver.Receive);
+                },
+                subscribe: onNext =>
+                {
+                    return subscribe(onNext, receiver.Subscribe);
+                });
+
+        private static class For<T>
+        {
+            private static readonly string category = $"{nameof(CommandReceiver)}<{typeof(T).Name}>";
+
+            public static OperationLogger Log(
+                string operationName,
+                Func<(string name, object value)[]> exitArgs = null,
+                object[] args = null) => new OperationLogger(
+                operationName,
+                category,
+                args: args,
+                exitArgs: exitArgs,
+                logOnStart: true);
+        }
     }
 }

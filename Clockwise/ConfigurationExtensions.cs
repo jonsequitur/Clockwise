@@ -11,9 +11,8 @@ namespace Clockwise
             this Configuration configuration,
             Func<Func<Type, object>, T> resolve)
         {
-            // ReSharper disable RedundantTypeArgumentsOfMethod
-            configuration.Container.Register<T>(c => resolve(c.Resolve));
-            // ReSharper restore RedundantTypeArgumentsOfMethod
+            configuration.Container
+                         .Register(c => resolve(c.Resolve));
             return configuration;
         }
 
@@ -52,7 +51,11 @@ namespace Clockwise
             // map of command type to bus instance
             var busesByType = new ConcurrentDictionary<Type, object>();
 
-            configuration.Container.AddStrategy(SingleInMemoryCommandBusPerCommandType(configuration, busesByType));
+            configuration.Container
+                         .AddStrategy(
+                             SingleInMemoryCommandBusPerCommandType(
+                                 configuration,
+                                 busesByType));
 
             configuration.RegisterForDisposal(Disposable.Create(() =>
             {
@@ -65,6 +68,13 @@ namespace Clockwise
             return configuration;
         }
 
+        public static Configuration TraceCommands(this Configuration configuration)
+        {
+            configuration.Properties.TracingEnabled = true;
+
+            return configuration;
+        }
+
         private static Func<Type, Func<PocketContainer, object>> SingleInMemoryCommandBusPerCommandType(
             Configuration configuration,
             ConcurrentDictionary<Type, object> busesByType) =>
@@ -73,25 +83,24 @@ namespace Clockwise
                 if (type.IsGenericType &&
                     IsSchedulerOrReceiver(type))
                 {
-                    var commandType = type.GenericTypeArguments.Single();
+                    var commandType = type.GenericTypeArguments[0];
                     var commandBusType = typeof(InMemoryCommandBus<>).MakeGenericType(commandType);
 
                     return container =>
-                            busesByType.GetOrAdd(
-                                commandType,
-                                _ =>
-                                {
-                                    var bus = container.Resolve(commandBusType);
+                        busesByType.GetOrAdd(
+                            commandType,
+                            _ =>
+                            {
+                                var bus = container.Resolve(commandBusType);
 
-                                    TrySubscribeDiscoveredHandler(
-                                        configuration,
-                                        commandType,
-                                        container,
-                                        bus);
+                                TrySubscribeDiscoveredHandler(
+                                    configuration,
+                                    commandType,
+                                    container,
+                                    bus);
 
-                                    return bus;
-                                })
-                        ;
+                                return bus;
+                            });
                 }
 
                 return null;
@@ -114,6 +123,11 @@ namespace Clockwise
             foreach (var handlerDescription in configuration.CommandHandlerDescriptions.Where(t => t.HandledCommandTypes.Contains(commandType)))
             {
                 var handler = c.Resolve(handlerDescription.ConcreteHandlerType);
+
+                if (configuration.Properties.TracingEnabled)
+                {
+                    handler = CommandHandler.Trace((dynamic) handler);
+                }
 
                 var subscription = CommandReceiver.Subscribe(
                     (dynamic) receiver,

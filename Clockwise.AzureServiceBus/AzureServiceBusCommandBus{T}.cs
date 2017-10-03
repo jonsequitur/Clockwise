@@ -7,7 +7,7 @@ using Pocket;
 
 namespace Clockwise.AzureServiceBus
 {
-    public class AzureServiceBusCommandBus<T> : 
+    public class AzureServiceBusCommandBus<T> :
         ICommandReceiver<T>,
         ICommandScheduler<T>,
         IDisposable
@@ -73,10 +73,7 @@ namespace Clockwise.AzureServiceBus
                     MaxConcurrentCalls = 1
                 });
 
-            return Disposable.Create(() =>
-            {
-               
-            });
+            return Disposable.Empty;
         }
 
         private static async Task HandleError(ExceptionReceivedEventArgs args)
