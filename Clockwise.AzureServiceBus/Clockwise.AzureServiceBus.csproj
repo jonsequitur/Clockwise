@@ -22,9 +22,7 @@
 
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="1.0.1" />
     <PackageReference Include="Microsoft.Azure.ServiceBus" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure.Authentication" Version="2.3.1" />
     <PackageReference Include="newtonsoft.json" Version="10.0.3" />
     <PackageReference Include="pocket.disposable" Version="1.0.2">
       <PrivateAssets>all</PrivateAssets>
