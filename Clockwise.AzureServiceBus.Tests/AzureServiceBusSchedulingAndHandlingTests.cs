@@ -2,13 +2,9 @@ using System;
 using System.Threading.Tasks;
 using Clockwise.Tests;
 using FluentAssertions;
-using Microsoft.Azure.Management.ServiceBus;
-using Microsoft.Azure.Management.ServiceBus.Models;
 using Microsoft.Azure.ServiceBus;
 using Microsoft.Azure.ServiceBus.Core;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using Microsoft.Rest.Azure.Authentication;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
@@ -82,44 +78,6 @@ namespace Clockwise.AzureServiceBus.Tests
                 CreateReceiver<T>().Subscribe(
                     CreateHandler(handle))) ;
 
-        private async Task EnsureQueueExists()
-        {
-            var clientCredential = new ClientCredential(
-                serviceBusSettings.ApplicationId,
-                serviceBusSettings.ClientSecret);
-
-            var credentials = await ApplicationTokenProvider.LoginSilentAsync(
-                                  serviceBusSettings.TenantId,
-                                  clientCredential);
-
-            var managementClient = new ServiceBusManagementClient(credentials)
-            {
-                SubscriptionId = serviceBusSettings.SubscriptionId
-            };
-
-            var namespaceName = "Clockwise-tests";
-
-            //           var ns = await managementClient.Namespaces.CreateOrUpdateAsync(
-            //                         "jonsequitur-dev",
-            //                         namespaceName,
-            //                         new SBNamespace
-            //                         {
-            //                             Location = "WestUS"
-            //                         }
-            //                     );
-
-            await managementClient.Queues.CreateOrUpdateAsync(
-                "jonsequitur-dev",
-                namespaceName,
-                queueName,
-                new SBQueue
-                {
-                    RequiresDuplicateDetection = true,
-                    LockDuration = 1.Minutes()
-                }
-            );
-        }
-
         private AzureServiceBusCommandBus<T> CreateBus<T>()
         {
             var bus = new AzureServiceBusCommandBus<T>(
@@ -140,20 +98,20 @@ namespace Clockwise.AzureServiceBus.Tests
             return scheduler.Trace();
         }
 
-        private MessageSender CreateMessageSender()
-        {
-            var messageSender = new MessageSender(serviceBusSettings.ConnectionString,
-                                                  queueName);
-
-            messageSender.RegisterPlugin(new TestHackPlugin());
-
-            return messageSender;
-        }
-
         private MessageReceiver CreateMessageReceiver()
         {
             return new MessageReceiver(serviceBusSettings.ConnectionString,
                                        queueName);
+        }
+
+        private MessageSender CreateMessageSender()
+        {
+            var sender = new MessageSender(serviceBusSettings.ConnectionString,
+                                                  queueName);
+
+            sender.RegisterPlugin(new TestHackPlugin());
+
+            return sender;
         }
 
         protected override ICommandReceiver<T> CreateReceiver<T>()

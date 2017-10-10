@@ -96,7 +96,7 @@ namespace Clockwise
             if (receivers.Length == 0)
             {
                 clock.Schedule(async s => await Publish(item),
-                               after: TimeSpan.FromSeconds(1));
+                               dueAfter: TimeSpan.FromSeconds(1));
                 return;
             }
 
