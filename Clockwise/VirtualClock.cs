@@ -34,9 +34,11 @@ namespace Clockwise
                 throw new InvalidOperationException("A virtual clock cannot be started while another is still active in the current context.");
             }
 
+            var virtualClock = new VirtualClock(now);
+
             Log.Trace("Starting at {now}", now);
 
-            return new VirtualClock(now);
+            return virtualClock;
         }
 
         public DateTimeOffset Now() => now;
