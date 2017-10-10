@@ -9,14 +9,14 @@ namespace Clockwise
         public static void Schedule(
             this IClock clock,
             Action<IClock> action,
-            TimeSpan? after) =>
-            clock.Schedule(action, clock.Now() + after);
+            TimeSpan? dueAfter) =>
+            clock.Schedule(action, clock.Now() + dueAfter);
 
         public static void Schedule(
             this IClock clock,
             Func<IClock, Task> action,
-            TimeSpan? after) =>
-            clock.Schedule(action, clock.Now() + after);
+            TimeSpan? dueAfter) =>
+            clock.Schedule(action, clock.Now() + dueAfter);
 
         public static async Task Wait(
             this IClock clock,

@@ -31,11 +31,11 @@ namespace Clockwise
         public static async Task Schedule<T>(
             this ICommandScheduler<T> scheduler,
             T command,
-            TimeSpan after,
+            TimeSpan dueAfter,
             string idempotencyToken = null) =>
             await scheduler.Schedule(
                 command,
-                Clock.Current.Now().Add(after));
+                Clock.Current.Now().Add(dueAfter));
 
         public static ICommandScheduler<T> Trace<T>(
             this ICommandScheduler<T> scheduler) =>
