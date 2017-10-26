@@ -22,10 +22,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.4.0" />
-    <PackageReference Include="pocket.disposable" Version="1.0.2">
+    <PackageReference Include="pocket.disposable" Version="1.0.3">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Pocket.TypeDiscovery" Version="0.3.12">
+    <PackageReference Include="Pocket.TypeDiscovery" Version="0.3.13">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="PocketContainer" Version="1.4.5">
