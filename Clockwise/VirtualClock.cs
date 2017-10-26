@@ -65,7 +65,10 @@ namespace Clockwise
 
                 now = due[0].Key;
 
-                due[0].Value?.Invoke(this);
+                if (schedule.TryRemove(now, out var action))
+                {
+                    action.Invoke(this);
+                }
             }
 
             now = time;
