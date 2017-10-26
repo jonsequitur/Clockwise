@@ -15,13 +15,13 @@
   <ItemGroup>
     <PackageReference Include="fluentassertions" Version="4.19.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
-    <PackageReference Include="pocket.disposable" Version="1.0.2" />
+    <PackageReference Include="pocket.disposable" Version="1.0.3" />
     <PackageReference Include="pocketcontainer" Version="1.4.5" />
     <PackageReference Include="PocketContainer.OpenGenericStrategy" Version="1.1.1" />
     <PackageReference Include="pocketlogger" Version="0.2.6" />
     <PackageReference Include="pocketlogger.subscribe" Version="0.2.3" />
-    <PackageReference Include="xunit" Version="2.2.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />
+    <PackageReference Include="xunit" Version="2.3.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>
