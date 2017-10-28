@@ -109,8 +109,11 @@ namespace Clockwise.Tests
             // if this test fails then it indicates that the sequential etag algorithm has changed
             var etagSequenceProducedByPreviousVersion = new[]
             {
-                "dM0F0CTmKQpAngK9tYgq/A==", "NxE5yC5V7I8BMBrUPMHKeQ==", "eN1q1+7HXXdDYow/qU80Fg==", "bbyUFL6Hee1cLancyW+iSQ==", "uITytyOZwtA6N0lMI0a1Kw==",
-                "WJ/wpF4bz2/vpTyHwLu5rg==", "RpXqssQ3o0vZSevaUfFJcA==", "eJxBtnoGVd/j+5JU0Qv/tA==", "Ry8jn92BPj3u/vUCDL8bXA==", "43pnV6fNpbBkBHay9wNPoQ=="
+                "7sNkA6fd+WqICHfZpSpca2bETG9e3AV0gwZP5/6zkVA=", "KJYYEMLms/h7kNhd8bmrrEhuGWFYAyMCr9UGtPR9kTY=",
+                "SWS6CjQM9taGbF3eYnG6xYrd5gkQyKa9b5KJg3o2YfQ=", "LtN9an7jOaKR3LShgocAH2edLzj8FGTuQ8z9wvMFzjg=",
+                "Yl/xj5eSYvywL8basZi0hsBYLWmAki6BG9KfbnpuYuc=", "qUEIZJOFwsI29ISwn25y2kstLOx//NSfVc76hY+KsEM=",
+                "2UDKYnVH6sBfnEn0mAXMb1clOayxhqA4wjLoXRYhuV0=", "vzQI9iIC6sQqD/Dk0D3ugVyjrvDeM7FoH+v2Y9H/emA=",
+                "iCqOdnu3UnIN68fVQyqZd9AD/PpW8+Qc2fkGT+9PUkc=", "EkHe5MMDkZkJiapyKEfSbKG6XuWhhZZLtD2UUlUML54="
             };
 
             var newlyGeneratedSequence = new List<string>();
