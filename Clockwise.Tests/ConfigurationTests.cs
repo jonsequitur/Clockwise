@@ -105,7 +105,7 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task Handlers_can_be_dynamically_wired_up_when_commands_are_scheduled()
+        public async Task Handlers_can_be_discovered_and_dynamically_wired_up_when_commands_are_scheduled()
         {
             var id = Guid.NewGuid().ToString();
 
