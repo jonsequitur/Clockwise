@@ -1,24 +1,24 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Clockwise
 {
     internal class CommandHandlerDescription
     {
-        public CommandHandlerDescription(Type type)
+        public CommandHandlerDescription(Type handlerInterface, Type concreteType)
         {
-            ConcreteHandlerType = type ??
-                                  throw new ArgumentNullException(nameof(type));
+            HandlerInterface = handlerInterface ??
+                               throw new ArgumentNullException(nameof(handlerInterface));
 
-            HandledCommandTypes = type.GetInterfaces()
-                                      .Where(i => i.IsGenericType &&
-                                                  i.GetGenericTypeDefinition() == typeof(ICommandHandler<>))
-                                      .Select(i => i.GetGenericArguments().Single())
-                                      .ToList();
+            ConcreteHandlerType = concreteType ??
+                                  throw new ArgumentNullException(nameof(concreteType));
+
+            HandledCommandType = handlerInterface.GetGenericArguments().Single();
         }
 
-        public List<Type> HandledCommandTypes { get; }
+        public Type HandledCommandType { get; }
+
+        public Type HandlerInterface { get; }
 
         public Type ConcreteHandlerType { get; }
     }

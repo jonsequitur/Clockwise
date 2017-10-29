@@ -7,6 +7,38 @@ namespace Clockwise
 {
     public static class ConfigurationExtensions
     {
+        public static Configuration OnSchedule<T>(
+            this Configuration configuration,
+            CommandSchedulingMiddleware<T> use)
+        {
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
+            configuration.Container
+                         .AfterCreating<ICommandScheduler<T>>(
+                             scheduler => scheduler.UseMiddleware(use));
+
+            return configuration;
+        }
+
+        public static Configuration OnHandle<T>(
+            this Configuration configuration,
+            CommandHandlingMiddleware<T> use)
+        {
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
+            configuration.Container
+                         .AfterCreating<ICommandHandler<T>>(
+                             handler => handler.UseMiddleware(use));
+
+            return configuration;
+        }
+
         public static Configuration UseDependency<T>(
             this Configuration configuration,
             Func<Func<Type, object>, T> resolve)
@@ -36,11 +68,27 @@ namespace Clockwise
         public static Configuration UseHandlerDiscovery(
             this Configuration configuration)
         {
+            var commandHandlerDescriptions =
+                Discover.ConcreteTypes()
+                        .SelectMany(
+                            concreteType =>
+                                concreteType.GetInterfaces()
+                                            .Where(
+                                                i => i.IsConstructedGenericType &&
+                                                     i.GetGenericTypeDefinition() == typeof(ICommandHandler<>))
+                                            .Select(
+                                                handlerInterface => new CommandHandlerDescription(handlerInterface, concreteType)))
+                        .ToArray();
+
             configuration.CommandHandlerDescriptions
-                         .AddRange(Discover.ConcreteTypes()
-                                           .ImplementingOpenGenericInterfaces(typeof(ICommandHandler<>))
-                                           .Select(t => new CommandHandlerDescription(t))
-                                           .ToList());
+                         .AddRange(commandHandlerDescriptions);
+
+            foreach (var handlerDescription in commandHandlerDescriptions)
+            {
+                configuration.Container.Register(
+                    handlerDescription.HandlerInterface,
+                    c => c.Resolve(handlerDescription.ConcreteHandlerType));
+            }
 
             return configuration;
         }
@@ -120,9 +168,11 @@ namespace Clockwise
             PocketContainer c,
             dynamic receiver)
         {
-            foreach (var handlerDescription in configuration.CommandHandlerDescriptions.Where(t => t.HandledCommandTypes.Contains(commandType)))
+            foreach (var handlerDescription in
+                configuration.CommandHandlerDescriptions
+                             .Where(t => t.HandledCommandType == commandType))
             {
-                var handler = c.Resolve(handlerDescription.ConcreteHandlerType);
+                var handler = c.Resolve(handlerDescription.HandlerInterface);
 
                 if (configuration.Properties.TracingEnabled)
                 {

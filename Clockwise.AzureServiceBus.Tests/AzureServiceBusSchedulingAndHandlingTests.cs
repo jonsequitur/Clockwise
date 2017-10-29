@@ -51,8 +51,7 @@ namespace Clockwise.AzureServiceBus.Tests
                 {
                     foreach (var message in messages)
                     {
-                        object test;
-                        message.UserProperties.TryGetValue("TestName", out test);
+                        message.UserProperties.TryGetValue("TestName", out var test);
 
                         operation.Trace(
                             "Draining message from source {test}",

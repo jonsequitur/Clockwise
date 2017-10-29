@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using FluentAssertions;
 using System.Threading.Tasks;
 using Pocket;
@@ -105,7 +106,7 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task Handlers_can_be_dynamically_wired_up_when_commands_are_scheduled()
+        public async Task Handlers_can_be_discovered_and_dynamically_wired_up_when_commands_are_scheduled()
         {
             var id = Guid.NewGuid().ToString();
 
@@ -126,6 +127,72 @@ namespace Clockwise.Tests
             var commandTarget = await store.Get(id);
 
             commandTarget.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task OnSchedule_can_be_used_to_configure_scheduler_middleware_for_a_specific_command_type()
+        {
+            var scheduled = new List<string>();
+
+            using (var configuration = new Configuration()
+                .UseInMemoryScheduling())
+            {
+                configuration.OnSchedule<string>(async (delivery, next) =>
+                {
+                    scheduled.Add(delivery.Command);
+                    await next(delivery);
+                });
+
+                using (var clock = VirtualClock.Start())
+                {
+                    clock.Repeat(async c =>
+                    {
+                        await configuration.CommandScheduler<string>().Schedule(c.Now().ToString());
+                    }, () => 1.Seconds());
+
+                    var handler = CommandHandler.Create<string>(delivery =>
+                    {
+                    });
+
+                    configuration.CommandReceiver<string>().Subscribe(handler);
+
+                    await Clock.Current.Wait(1.Minutes());
+                }
+            }
+
+            scheduled.Count.Should().Be(60);
+        }
+
+        [Fact]
+        public async Task OnHandle_can_be_used_to_configure_scheduler_middleware_for_a_specific_command_type()
+        {
+            var handled = new List<CreateCommandTarget>();
+
+            using (var configuration = new Configuration()
+                .UseHandlerDiscovery()
+                .UseDependency<IStore<CommandTarget>>(_ => new InMemoryStore<CommandTarget>())
+                .UseInMemoryScheduling())
+            {
+                configuration.OnHandle<CreateCommandTarget>(async (delivery, next) =>
+                {
+                    handled.Add(delivery.Command);
+                    return await next(delivery);
+                });
+
+                using (var clock = VirtualClock.Start())
+                {
+                    clock.Repeat(async c =>
+                    {
+                        await configuration.CommandScheduler<CreateCommandTarget>()
+                                           .Schedule(new CreateCommandTarget(Guid.NewGuid().ToString()));
+                    }, () => 1.Seconds());
+
+                    // an extra tick is required to get to 60 because the 60th command is dispatched at the 1 minute mark
+                    await Clock.Current.Wait(1.Minutes() + 1.Ticks());
+                }
+            }
+
+            handled.Count.Should().Be(60);
         }
 
         private class FakeReceiver<T> : ICommandReceiver<T>

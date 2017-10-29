@@ -20,6 +20,10 @@
     <PackageLicenseUrl>https://github.com/jonsequitur/clockwise/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>7.1</LangVersion>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.4.0" />
     <PackageReference Include="pocket.disposable" Version="1.0.3">
@@ -31,6 +35,7 @@
     <PackageReference Include="PocketContainer" Version="1.4.5">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="pocketcontainer.aftercreating" Version="1.0.4" />
     <PackageReference Include="PocketContainer.OpenGenericStrategy" Version="1.1.1">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

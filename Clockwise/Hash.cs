@@ -19,9 +19,9 @@ namespace Clockwise
             var inputBytes = Encoding.ASCII.GetBytes(value);
 
             byte[] hash;
-            using (var md5 = MD5.Create())
+            using (var sha = SHA256.Create())
             {
-                hash = md5.ComputeHash(inputBytes);
+                hash = sha.ComputeHash(inputBytes);
             }
 
             return Convert.ToBase64String(hash);
