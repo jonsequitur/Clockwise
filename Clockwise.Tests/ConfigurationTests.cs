@@ -33,6 +33,32 @@ namespace Clockwise.Tests
         }
 
         [Fact]
+        public void UseInMemoryScheduling_registers_singleton_command_receiver_instances_per_command_type()
+        {
+            using (var configuration = new Configuration().UseInMemoryScheduling())
+            {
+                var receiver1 = configuration.CommandReceiver<int>();
+
+                var receiver2 = configuration.CommandReceiver<int>();
+
+                receiver1.Should().BeSameAs(receiver2);
+            }
+        }
+
+        [Fact]
+        public void UseInMemoryScheduling_registers_singleton_command_scheduler_instances_per_command_type()
+        {
+            using (var configuration = new Configuration().UseInMemoryScheduling())
+            {
+                var scheduler1 = configuration.CommandScheduler<int>();
+
+                var scheduler2 = configuration.CommandScheduler<int>();
+
+                scheduler1.Should().BeSameAs(scheduler2);
+            }
+        }
+
+        [Fact]
         public void if_no_virtual_clock_is_started_then_it_will_start_one_on_demand()
         {
             using (var configuration = new Configuration())
