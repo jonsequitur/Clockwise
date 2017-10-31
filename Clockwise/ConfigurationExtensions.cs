@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using Pocket;
+using static Pocket.Logger<Clockwise.Configuration>;
 
 namespace Clockwise
 {
@@ -134,21 +135,28 @@ namespace Clockwise
                     var commandType = type.GenericTypeArguments[0];
                     var commandBusType = typeof(InMemoryCommandBus<>).MakeGenericType(commandType);
 
-                    return container =>
-                        busesByType.GetOrAdd(
-                            commandType,
-                            _ =>
-                            {
-                                var bus = container.Resolve(commandBusType);
+                    var receiverType = typeof(ICommandReceiver<>).MakeGenericType(commandType);
+                    var schedulerType = typeof(ICommandScheduler<>).MakeGenericType(commandType);
 
-                                TrySubscribeDiscoveredHandler(
-                                    configuration,
-                                    commandType,
-                                    container,
-                                    bus);
+                    configuration.Container
+                                 .RegisterSingle(receiverType, CreateAndSubscribeDiscoveredHandlers)
+                                 .RegisterSingle(schedulerType, CreateAndSubscribeDiscoveredHandlers);
 
-                                return bus;
-                            });
+                    return c => c.Resolve(type);
+
+                    object CreateAndSubscribeDiscoveredHandlers(PocketContainer container) =>
+                        busesByType.GetOrAdd(commandType, _ =>
+                        {
+                            var bus = container.Resolve(commandBusType);
+
+                            TrySubscribeDiscoveredHandler(
+                                configuration,
+                                commandType,
+                                container,
+                                bus);
+
+                            return bus;
+                        });
                 }
 
                 return null;
@@ -184,6 +192,11 @@ namespace Clockwise
                     (dynamic) handler);
 
                 configuration.RegisterForDisposal(subscription);
+
+                Log.Trace(
+                    "Subscribing discovered command handler: {handler} to handle commands of type {commandType}",
+                    handlerDescription.ConcreteHandlerType,
+                    handlerDescription.HandledCommandType);
             }
         }
     }
