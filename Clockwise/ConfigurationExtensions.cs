@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using Pocket;
+using static Pocket.Logger<Clockwise.Configuration>;
 
 namespace Clockwise
 {
@@ -191,6 +192,11 @@ namespace Clockwise
                     (dynamic) handler);
 
                 configuration.RegisterForDisposal(subscription);
+
+                Log.Trace(
+                    "Subscribing discovered command handler: {handler} to handle commands of type {commandType}",
+                    handlerDescription.ConcreteHandlerType,
+                    handlerDescription.HandledCommandType);
             }
         }
     }
