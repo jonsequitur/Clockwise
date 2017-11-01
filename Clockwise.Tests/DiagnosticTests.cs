@@ -46,13 +46,14 @@ namespace Clockwise.Tests
         {
             configuration
                 .TraceCommands()
+                .UseDependency<IStore<CommandTarget>>(_ => new InMemoryStore<CommandTarget>())
                 .UseHandlerDiscovery();
 
-            await configuration.CommandScheduler<string>().Schedule("hi!");
+            await configuration.CommandScheduler<CreateCommandTarget>().Schedule(new CreateCommandTarget("id"));
 
             await Clock.Current.Wait(1.Seconds());
 
-            log.Should().Contain(e => e.Contains("[CommandHandler<String>] [Handle]  ▶"));
+            log.Should().Contain(e => e.Contains("[CommandHandler<CreateCommandTarget>] [Handle]  ▶"));
         }
 
         [Fact]
