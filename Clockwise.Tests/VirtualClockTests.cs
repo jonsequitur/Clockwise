@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -283,7 +283,7 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task When_advanced_it_logs_the_time_and_ticks()
+        public async Task When_advanced_it_logs_the_time_and_ticks_at_start_and_stop_of_operation()
         {
             var startTime = DateTimeOffset.Parse("9/2/2017 12:03:04pm");
             var log = new List<string>();
@@ -293,7 +293,8 @@ namespace Clockwise.Tests
             {
                 await clock.AdvanceBy(1.Milliseconds());
 
-                log.Last().Should().Match($"*[Clockwise.VirtualClock]*Advancing to {clock.Now()} ({clock.Now().Ticks})*");
+                log[1].Should().Match($"*[Clockwise.VirtualClock] [AdvanceTo]  ▶ Advancing from {startTime} ({startTime.Ticks}) to {clock.Now()} ({clock.Now().Ticks})*");
+                log[2].Should().Match($"*[Clockwise.VirtualClock] [AdvanceTo]  ⏹ -> ✔ (*ms)  +[ (nowAt, {Clock.Now()}) ]*");
             }
         }
     }

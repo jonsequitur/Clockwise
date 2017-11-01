@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Reflection;
 using Pocket;
 using static Pocket.Logger<Clockwise.Configuration>;
 
@@ -134,11 +135,14 @@ namespace Clockwise
                 {
                     var commandType = type.GenericTypeArguments[0];
                     var commandBusType = typeof(InMemoryCommandBus<>).MakeGenericType(commandType);
-
                     var receiverType = typeof(ICommandReceiver<>).MakeGenericType(commandType);
                     var schedulerType = typeof(ICommandScheduler<>).MakeGenericType(commandType);
 
                     configuration.Container
+                                 .RegisterSingle(commandBusType,
+                                                 c => Activator.CreateInstance(
+                                                     commandBusType,
+                                                     c.Resolve<VirtualClock>()))
                                  .RegisterSingle(receiverType, CreateAndSubscribeDiscoveredHandlers)
                                  .RegisterSingle(schedulerType, CreateAndSubscribeDiscoveredHandlers);
 
