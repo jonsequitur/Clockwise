@@ -48,9 +48,7 @@ namespace Clockwise
             timeout = timeout ??
                       Settings.For<T>.Default.ReceiveTimeout;
 
-            var howFarToAdvance = ShorterOf(
-                timeout,
-                clock.TimeUntilNextActionIsDue);
+            var stopAt = clock.Now() + timeout;
 
             ICommandDeliveryResult result = null;
 
@@ -60,7 +58,18 @@ namespace Clockwise
                 return result;
             }))
             {
-                await clock.Wait(howFarToAdvance);
+                while (result == null &&
+                       clock.Now() <= stopAt)
+                {
+                    var timeUntilNextActionIsDue = clock.TimeUntilNextActionIsDue;
+
+                    if (timeUntilNextActionIsDue == null)
+                    {
+                        return null;
+                    }
+
+                    await clock.Wait(timeUntilNextActionIsDue.Value);
+                }
             }
 
             return result;
@@ -136,14 +145,6 @@ namespace Clockwise
 
             return receivers;
         }
-
-        private static TimeSpan ShorterOf(
-            TimeSpan? value1,
-            TimeSpan? one) =>
-            TimeSpan.FromTicks(
-                Math.Min(
-                    (value1 ?? TimeSpan.MaxValue).Ticks,
-                    (one ?? TimeSpan.MaxValue).Ticks));
 
         private static void ThrowObjectDisposed()
         {
