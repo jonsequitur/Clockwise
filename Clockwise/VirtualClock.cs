@@ -52,27 +52,39 @@ namespace Clockwise
                 throw new ArgumentException("The clock cannot be moved backward in time.");
             }
 
-            Log.Trace("Advancing to {time} ({ticks})", time, time.Ticks);
-
-            while (true)
+            using (var operation = AndConfirmAdvancement(now, time))
             {
-                var due = DueBetween(now, time).ToArray();
-
-                if (!due.Any())
+                while (true)
                 {
-                    break;
+                    var due = DueBetween(now, time).ToArray();
+
+                    if (!due.Any())
+                    {
+                        break;
+                    }
+
+                    now = due[0].Key;
+
+                    if (schedule.TryRemove(now, out var action))
+                    {
+                        action.Invoke(this);
+                    }
                 }
 
-                now = due[0].Key;
+                operation.Succeed();
 
-                if (schedule.TryRemove(now, out var action))
-                {
-                    action.Invoke(this);
-                }
+                now = time;
             }
-
-            now = time;
         }
+
+        private ConfirmationLogger AndConfirmAdvancement(DateTimeOffset start, DateTimeOffset end) =>
+            new ConfirmationLogger(
+                nameof(AdvanceTo),
+                Log.Category,
+                "Advancing from {start} ({startTicks}) to {end} ({endTicks})",
+                args: new object[] { start, start.Ticks, end, end.Ticks },
+                exitArgs: () => new[] { ("nowAt", (object) now) },
+                logOnStart: true);
 
         public async Task AdvanceBy(TimeSpan timespan) =>
             await AdvanceTo(now.Add(timespan));
