@@ -55,12 +55,6 @@ namespace Clockwise.Tests
             log.Should().Contain(e => e.Contains("[CommandHandler<String>] [Handle]  ▶"));
         }
 
-        public class TestHandler : ICommandHandler<string>
-        {
-            public Task<ICommandDeliveryResult> Handle(ICommandDelivery<string> delivery) =>
-                Task.FromResult<ICommandDeliveryResult>(delivery.Complete());
-        }
-
         [Fact]
         public async Task Trace_enables_diagnostic_output_on_all_receivers_when_Receive_is_called()
         {
