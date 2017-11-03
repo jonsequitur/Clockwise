@@ -130,8 +130,7 @@ namespace Clockwise
             ConcurrentDictionary<Type, object> busesByType) =>
             type =>
             {
-                if (type.IsGenericType &&
-                    IsSchedulerOrReceiver(type))
+                if (type.IsSchedulerOrReceiver())
                 {
                     var commandType = type.GenericTypeArguments[0];
                     var commandBusType = typeof(InMemoryCommandBus<>).MakeGenericType(commandType);
@@ -157,7 +156,7 @@ namespace Clockwise
                                 configuration,
                                 commandType,
                                 container,
-                                bus);
+                                (dynamic) bus);
 
                             return bus;
                         });
@@ -166,34 +165,37 @@ namespace Clockwise
                 return null;
             };
 
-        private static bool IsSchedulerOrReceiver(Type type)
+        private static bool IsSchedulerOrReceiver(this Type type)
         {
+            if (!type.IsGenericType)
+            {
+                return false;
+            }
+
             var genericTypeDefinition = type.GetGenericTypeDefinition();
 
             return genericTypeDefinition == typeof(ICommandScheduler<>) ||
                    genericTypeDefinition == typeof(ICommandReceiver<>);
         }
 
-        private static void TrySubscribeDiscoveredHandler(
+        internal static void TrySubscribeDiscoveredHandler<T>(
             Configuration configuration,
             Type commandType,
             PocketContainer c,
-            dynamic receiver)
+            ICommandReceiver<T> receiver)
         {
             foreach (var handlerDescription in
                 configuration.CommandHandlerDescriptions
                              .Where(t => t.HandledCommandType == commandType))
             {
-                var handler = c.Resolve(handlerDescription.HandlerInterface);
+                var handler = c.Resolve(handlerDescription.HandlerInterface) as ICommandHandler<T>;
 
                 if (configuration.Properties.TracingEnabled)
                 {
-                    handler = CommandHandler.Trace((dynamic) handler);
+                    handler = handler.Trace();
                 }
 
-                var subscription = CommandReceiver.Subscribe(
-                    (dynamic) receiver,
-                    (dynamic) handler);
+                var subscription = receiver.Subscribe(handler);
 
                 configuration.RegisterForDisposal(subscription);
 
