@@ -7,22 +7,16 @@ using Pocket;
 
 namespace Clockwise.AzureServiceBus
 {
-    public class AzureServiceBusCommandBus<T> :
+    public class AzureServiceBusCommandReceiver<T> :
         ICommandReceiver<T>,
-        ICommandScheduler<T>,
         IDisposable
     {
-        private readonly MessageSender messageSender;
         private readonly MessageReceiver messageReceiver;
-        private static readonly Logger Log = new Logger("AzureServiceBusCommandBus");
+        private static readonly Logger Log = new Logger("AzureServiceBusCommandReceiver");
 
-        public AzureServiceBusCommandBus(
-            MessageSender messageSender,
+        public AzureServiceBusCommandReceiver(
             MessageReceiver messageReceiver)
         {
-            this.messageSender = messageSender ??
-                                 throw new ArgumentNullException(nameof(messageSender));
-
             this.messageReceiver = messageReceiver ??
                                    throw new ArgumentNullException(nameof(messageReceiver));
         }
@@ -44,11 +38,6 @@ namespace Clockwise.AzureServiceBus
             }
 
             return null;
-        }
-
-        public async Task Schedule(ICommandDelivery<T> delivery)
-        {
-            await messageSender.SendAsync(delivery.ToMessage());
         }
 
         public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext)
@@ -96,7 +85,6 @@ namespace Clockwise.AzureServiceBus
             switch (result)
             {
                 case RetryDeliveryResult<T> _:
-                    // await queueClient.AbandonAsync(message.SystemProperties.LockToken);
                     break;
 
                 case CancelDeliveryResult<T> _:

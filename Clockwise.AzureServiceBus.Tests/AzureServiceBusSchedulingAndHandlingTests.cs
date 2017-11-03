@@ -77,25 +77,7 @@ namespace Clockwise.AzureServiceBus.Tests
                 CreateReceiver<T>().Subscribe(
                     CreateHandler(handle))) ;
 
-        private AzureServiceBusCommandBus<T> CreateBus<T>()
-        {
-            var bus = new AzureServiceBusCommandBus<T>(
-                CreateMessageSender(),
-                CreateMessageReceiver());
-
-            RegisterForDisposal(bus);
-
-            return bus;
-        }
-
-        protected override ICommandScheduler<T> CreateScheduler<T>()
-        {
-            var bus = CreateBus<T>();
-
-            ICommandScheduler<T> scheduler = bus;
-
-            return scheduler.Trace();
-        }
+     
 
         private MessageReceiver CreateMessageReceiver()
         {
@@ -115,11 +97,22 @@ namespace Clockwise.AzureServiceBus.Tests
 
         protected override ICommandReceiver<T> CreateReceiver<T>()
         {
-            var bus = CreateBus<T>();
+            var bus = new AzureServiceBusCommandReceiver<T>(
+                CreateMessageReceiver());
 
-            ICommandReceiver<T> receiver = bus;
+            RegisterForDisposal(bus);
 
-            return receiver.Trace();
+            return bus;
+        }
+  
+        protected override ICommandScheduler<T> CreateScheduler<T>()
+        {
+            var bus = new AzureServiceBusCommandScheduler<T>(
+                CreateMessageSender());
+
+            RegisterForDisposal(bus);
+
+            return bus;
         }
 
         protected override IClock Clock { get; } = new RealtimeClock();
