@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Pocket;
@@ -11,7 +9,7 @@ namespace Clockwise
 {
     public class VirtualClock : IClock, IDisposable
     {
-        private readonly ConcurrentDictionary<DateTimeOffset, Action<VirtualClock>> schedule = new ConcurrentDictionary<DateTimeOffset, Action<VirtualClock>>();
+        private readonly SortedList<DateTimeOffset, Action<VirtualClock>> schedule = new SortedList<DateTimeOffset, Action<VirtualClock>>();
 
         private readonly string createdBy;
 
@@ -54,21 +52,19 @@ namespace Clockwise
 
             using (var operation = AndConfirmAdvancement(now, time))
             {
-                while (true)
+                while (schedule.Count > 0)
                 {
-                    var due = DueBetween(now, time).ToArray();
+                    var next = schedule.Keys[0];
 
-                    if (!due.Any())
+                    if (next > time)
                     {
                         break;
                     }
 
-                    now = due[0].Key;
-
-                    if (schedule.TryRemove(now, out var action))
-                    {
-                        action.Invoke(this);
-                    }
+                    now = next;
+                    var scheduleValue = schedule.Values[0];
+                    scheduleValue.Invoke(this);
+                    schedule.RemoveAt(0);
                 }
 
                 operation.Succeed();
@@ -106,12 +102,12 @@ namespace Clockwise
                 scheduledTime = after.Value;
             }
 
-            while (!schedule.TryAdd(
-                       scheduledTime,
-                       action))
+            while (schedule.ContainsKey(scheduledTime))
             {
                 scheduledTime = scheduledTime.AddTicks(1);
             }
+
+            schedule.Add(scheduledTime, action);
         }
 
         public void Schedule(
@@ -121,20 +117,22 @@ namespace Clockwise
                 s => Task.Run(() => action(s)).Wait(),
                 after);
 
-        private IOrderedEnumerable<KeyValuePair<DateTimeOffset, Action<VirtualClock>>> DueBetween(
-            DateTimeOffset startTime,
-            DateTimeOffset endTime) =>
-            schedule
-                .Where(pair => pair.Key > startTime &&
-                               pair.Key <= endTime)
-                .OrderBy(pair => pair.Key);
+        public TimeSpan? TimeUntilNextActionIsDue
+        {
+            get
+            {
+                for (var i = 0; i < schedule.Count; i++)
+                {
+                    var due = schedule.Keys[i];
 
-        public TimeSpan? TimeUntilNextActionIsDue =>
-            schedule
-                .Select(pair => pair.Key - now)
-                .Where(t => t > TimeSpan.Zero)
-                .OrderBy(t => t)
-                .Select(t => new TimeSpan?(t))
-                .FirstOrDefault();
+                    if (due >= now)
+                    {
+                        return due - now;
+                    }
+                }
+
+                return new TimeSpan?();
+            }
+        }
     }
 }
