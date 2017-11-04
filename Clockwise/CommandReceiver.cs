@@ -31,7 +31,7 @@ namespace Clockwise
         public static IDisposable Subscribe<TReceive, THandle>(
             this ICommandReceiver<TReceive> receiver,
             ICommandHandler<THandle> handler)
-            where THandle : class, TReceive
+            where THandle : TReceive
         {
             async Task<ICommandDeliveryResult> OnNext(ICommandDelivery<TReceive> delivery)
             {
