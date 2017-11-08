@@ -73,15 +73,6 @@ namespace Clockwise
             }
         }
 
-        private ConfirmationLogger AndConfirmAdvancement(DateTimeOffset start, DateTimeOffset end) =>
-            new ConfirmationLogger(
-                nameof(AdvanceTo),
-                Log.Category,
-                "Advancing from {start} ({startTicks}) to {end} ({endTicks})",
-                args: new object[] { start, start.Ticks, end, end.Ticks },
-                exitArgs: () => new[] { ("nowAt", (object) now) },
-                logOnStart: true);
-
         public async Task AdvanceBy(TimeSpan timespan) =>
             await AdvanceTo(now.Add(timespan));
 
@@ -134,5 +125,14 @@ namespace Clockwise
                 return new TimeSpan?();
             }
         }
+
+        private ConfirmationLogger AndConfirmAdvancement(DateTimeOffset start, DateTimeOffset end) =>
+            new ConfirmationLogger(
+                nameof(AdvanceTo),
+                Log.Category,
+                "Advancing from {start} ({startTicks}) to {end} ({endTicks})",
+                args: new object[] { start, start.Ticks, end, end.Ticks },
+                exitArgs: () => new[] { ("nowAt", (object) now) },
+                logOnStart: true);
     }
 }
