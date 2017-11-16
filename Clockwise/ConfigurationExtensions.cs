@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Pocket;
 using static Pocket.Logger<Clockwise.Configuration>;
 
@@ -67,19 +69,21 @@ namespace Clockwise
         }
 
         public static Configuration UseHandlerDiscovery(
-            this Configuration configuration)
+            this Configuration configuration,
+            IEnumerable<Assembly> withinAssemblies = null)
         {
             var commandHandlerDescriptions =
-                Discover.ConcreteTypes()
-                        .SelectMany(
-                            concreteType =>
-                                concreteType.GetInterfaces()
-                                            .Where(
-                                                i => i.IsConstructedGenericType &&
-                                                     i.GetGenericTypeDefinition() == typeof(ICommandHandler<>))
-                                            .Select(
-                                                handlerInterface => new CommandHandlerDescription(handlerInterface, concreteType)))
-                        .ToArray();
+                (withinAssemblies?.Types() ??
+                 Discover.ConcreteTypes())
+                .SelectMany(
+                    concreteType =>
+                        concreteType.GetInterfaces()
+                                    .Where(
+                                        i => i.IsConstructedGenericType &&
+                                             i.GetGenericTypeDefinition() == typeof(ICommandHandler<>))
+                                    .Select(
+                                        handlerInterface => new CommandHandlerDescription(handlerInterface, concreteType)))
+                .ToArray();
 
             configuration.CommandHandlerDescriptions
                          .AddRange(commandHandlerDescriptions);
