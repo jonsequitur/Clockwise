@@ -13,14 +13,18 @@ namespace Clockwise.Tests
         private readonly Configuration configuration;
         private readonly CompositeDisposable disposables = new CompositeDisposable();
         private readonly LogEntryList log = new LogEntryList();
+        private readonly VirtualClock clock;
 
         public DiagnosticTests(ITestOutputHelper output)
         {
+            configuration = new Configuration()
+                .UseInMemoryScheduling()
+                .TraceCommands();
+            disposables.Add(configuration);
+            disposables.Add(clock = VirtualClock.Start());
+
             disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
             disposables.Add(LogEvents.Subscribe(log.Add));
-
-            configuration = new Configuration();
-            disposables.Add(configuration.UseInMemoryScheduling());
         }
 
         public void Dispose() => disposables.Dispose();
@@ -138,6 +142,140 @@ namespace Clockwise.Tests
                .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
                                    e.OperationName == "Subscribe" &&
                                    e.Operation.IsEnd);
+        }
+
+        [Fact]
+        public async Task CommandScheduler_Trace_publishes_delivery_properties_as_telemetry_properties()
+        {
+            // arrange
+            var scheduler = CommandScheduler.Create<CreateCommandTarget>(c =>
+            {
+            }).Trace();
+
+            var delivery = new CommandDelivery<CreateCommandTarget>(
+                new CreateCommandTarget("the-id"),
+                idempotencyToken: "the-idempotency-token",
+                dueTime: DateTimeOffset.Parse("12/5/2086"));
+
+            // act
+            await scheduler.Schedule(delivery);
+
+            // assert
+            var logEvent = log[0];
+
+            logEvent
+                .Category
+                .Should()
+                .Be("CommandScheduler<CreateCommandTarget>",
+                    "we're verifying that we have the right log event");
+
+            var properties = logEvent
+                .Evaluate()
+                .Properties;
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "IdempotencyToken" &&
+                              t.Value.As<string>() == "the-idempotency-token");
+            properties
+                .Should()
+                .Contain(t => t.Name == "DueTime" &&
+                              t.Value.As<DateTimeOffset>() == delivery.DueTime);
+        }
+
+        [Fact]
+        public async Task CommandReceiver_Trace_publishes_delivery_properties_as_telemetry_properties()
+        {
+            // arrange
+            var dueTime = DateTimeOffset.Parse("12/5/2086");
+
+            var command = new CreateCommandTarget("the-id");
+
+            var handler = CommandHandler.Create<CreateCommandTarget>(d => d.Complete());
+
+            var delivery = new CommandDelivery<CreateCommandTarget>(
+                command,
+                idempotencyToken: "the-idempotency-token",
+                dueTime: dueTime,
+                numberOfPreviousAttempts: 4);
+            await configuration.CommandScheduler<CreateCommandTarget>().Schedule(delivery);
+
+            // act
+            await configuration.CommandReceiver<CreateCommandTarget>().Receive(handler);
+
+            // assert
+            var logEvent = log[4];
+
+            logEvent
+                .Category
+                .Should()
+                .Be("CommandReceiver<CreateCommandTarget>",
+                    "we're verifying that we have the right log event");
+
+            var properties = logEvent
+                .Evaluate()
+                .Properties;
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "IdempotencyToken" &&
+                              t.Value.As<string>() == "the-idempotency-token");
+            properties
+                .Should()
+                .Contain(t => t.Name == "DueTime" &&
+                              t.Value.As<DateTimeOffset>() == dueTime);
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "NumberOfPreviousAttempts" &&
+                              t.Value.As<int>() == 4);
+        }
+
+        [Fact]
+        public async Task CommandHandler_Trace_publishes_delivery_properties_as_telemetry_properties()
+        {
+            // arrange
+            var dueTime = DateTimeOffset.Parse("12/5/2086");
+
+            var handler = CommandHandler.Create<CreateCommandTarget>(d => d.Complete()).Trace();
+
+            var command = new CreateCommandTarget("the-id");
+
+            var delivery = new CommandDelivery<CreateCommandTarget>(
+                command,
+                idempotencyToken: "the-idempotency-token",
+                dueTime: dueTime,
+                numberOfPreviousAttempts: 4);
+
+            // act
+            await handler.Handle(delivery);
+
+            // assert
+            var logEvent = log[0];
+
+            logEvent
+                .Category
+                .Should()
+                .Be("CommandHandler<CreateCommandTarget>",
+                    "we're verifying that we have the right log event");
+
+            var properties = logEvent
+                .Evaluate()
+                .Properties;
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "IdempotencyToken" &&
+                              t.Value.As<string>() == "the-idempotency-token");
+            properties
+                .Should()
+                .Contain(t => t.Name == "DueTime" &&
+                              t.Value.As<DateTimeOffset>() == dueTime);
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "NumberOfPreviousAttempts" &&
+                              t.Value.As<int>() == 4);
         }
     }
 }

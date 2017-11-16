@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Pocket;
-using static Pocket.Logger<Clockwise.Configuration>;
 
 namespace Clockwise
 {
@@ -202,7 +201,7 @@ namespace Clockwise
 
                 configuration.RegisterForDisposal(subscription);
 
-                Log.Trace(
+                Logger<Configuration>.Log.Trace(
                     "Subscribing discovered command handler: {handler} to handle commands of type {commandType}",
                     handlerDescription.ConcreteHandlerType,
                     handlerDescription.HandledCommandType);
