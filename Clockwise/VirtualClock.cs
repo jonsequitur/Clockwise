@@ -63,8 +63,8 @@ namespace Clockwise
 
                     now = next;
                     var scheduleValue = schedule.Values[0];
-                    scheduleValue.Invoke(this);
                     schedule.RemoveAt(0);
+                    scheduleValue.Invoke(this);
                 }
 
                 operation.Succeed();
