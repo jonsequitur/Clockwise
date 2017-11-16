@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Threading.Tasks;
 using FluentAssertions;
+using System.Linq;
+using System.Threading.Tasks;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
@@ -12,12 +12,12 @@ namespace Clockwise.Tests
     {
         private readonly Configuration configuration;
         private readonly CompositeDisposable disposables = new CompositeDisposable();
-        private readonly ConcurrentQueue<string> log = new ConcurrentQueue<string>();
+        private readonly LogEntryList log = new LogEntryList();
 
         public DiagnosticTests(ITestOutputHelper output)
         {
             disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
-            disposables.Add(LogEvents.Subscribe(e => log.Enqueue(e.ToLogString())));
+            disposables.Add(LogEvents.Subscribe(log.Add));
 
             configuration = new Configuration();
             disposables.Add(configuration.UseInMemoryScheduling());
@@ -26,7 +26,7 @@ namespace Clockwise.Tests
         public void Dispose() => disposables.Dispose();
 
         [Fact]
-        public async Task Trace_enables_diagnostic_output_on_all_schedulers()
+        public async Task Trace_enables_diagnostic_output_on_all_schedulers_when_Schedule_is_called()
         {
             configuration.TraceCommands();
 
@@ -35,10 +35,16 @@ namespace Clockwise.Tests
             await scheduler.Schedule(new CommandDelivery<string>(
                                          "hi!",
                                          dueTime: DateTimeOffset.Parse("1/31/2017 12:05am +00:00"),
-                                         idempotencyToken: "idempotency-token"));
+                                         idempotencyToken: "the-idempotency-token"));
 
-            log.Should().Contain(e => e.Contains("[CommandScheduler<String>] [Schedule]  ▶ hi! (idempotency-token) due 1/31/2017 12:05:00 AM +00:00"));
-            log.Should().Contain(e => e.Contains("[CommandScheduler<String>] [Schedule]  ⏹"));
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandScheduler<String>" &&
+                                   e.OperationName == "Schedule" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandScheduler<String>" &&
+                                   e.OperationName == "Schedule" &&
+                                   e.Operation.IsEnd);
         }
 
         [Fact]
@@ -53,7 +59,14 @@ namespace Clockwise.Tests
 
             await Clock.Current.Wait(1.Seconds());
 
-            log.Should().Contain(e => e.Contains("[CommandHandler<CreateCommandTarget>] [Handle]  ▶"));
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandHandler<CreateCommandTarget>" &&
+                                   e.OperationName == "Handle" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandHandler<CreateCommandTarget>" &&
+                                   e.OperationName == "Handle" &&
+                                   e.Operation.IsEnd);
         }
 
         [Fact]
@@ -71,8 +84,13 @@ namespace Clockwise.Tests
             await configuration.CommandReceiver<string>().Receive(handler);
 
             log.Should()
-               .Contain(e => e.Contains("[CommandReceiver<String>] [Receive]  ⏹") &&
-                             e.Contains("hi!"));
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Receive" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Receive" &&
+                                   e.Operation.IsEnd);
         }
 
         [Fact]
@@ -91,8 +109,14 @@ namespace Clockwise.Tests
 
             await Clock.Current.Wait(1.Seconds());
 
-            log.Should().Contain(e => e.Contains("[CommandReceiver<String>] [Receive]  ▶") &&
-                                      e.Contains("hi!"));
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Receive" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Receive" &&
+                                   e.Operation.IsEnd);
         }
 
         [Fact]
@@ -106,7 +130,14 @@ namespace Clockwise.Tests
 
             configuration.CommandReceiver<string>().Subscribe(handler);
 
-            log.Should().Contain(e => e.Contains("[CommandReceiver<String>] [Subscribe]  ▶"));
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Subscribe" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Subscribe" &&
+                                   e.Operation.IsEnd);
         }
     }
 }
