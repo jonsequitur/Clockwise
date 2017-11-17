@@ -1,15 +1,28 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using FluentAssertions;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Pocket;
 using Xunit;
+using Xunit.Abstractions;
+using static Pocket.Logger;
 
 namespace Clockwise.Tests
 {
-    public class VirtualClockTests
+    public class VirtualClockTests : IDisposable
     {
+        private readonly CompositeDisposable disposables = new CompositeDisposable();
+
+        public VirtualClockTests(ITestOutputHelper output)
+        {
+            disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
+        }
+
+        public void Dispose() => disposables.Dispose();
+
         [Fact]
         public void Clock_can_be_overridden_using_VirtualClock()
         {
@@ -82,7 +95,6 @@ namespace Clockwise.Tests
             using (var clock = VirtualClock.Start())
             {
                 Func<Task> moveBackwards = () => clock.AdvanceTo(clock.Now().Subtract(1.Minutes()));
-
                 moveBackwards.ShouldThrow<ArgumentException>()
                              .Which
                              .Message
@@ -238,7 +250,8 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task When_actions_were_scheduled_in_the_past_and_are_scheduled_in_the_future_then_TimeUntilNextActionIsDue_returns_the_expected_time()
+        public async Task
+            When_actions_were_scheduled_in_the_past_and_are_scheduled_in_the_future_then_TimeUntilNextActionIsDue_returns_the_time_until_the_next_future_scheduled_action()
         {
             using (var clock = VirtualClock.Start())
             {
@@ -266,6 +279,36 @@ namespace Clockwise.Tests
             using (var clock = VirtualClock.Start())
             {
                 clock.TimeUntilNextActionIsDue.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public async Task Clock_Now_is_correct_when_clock_is_advanced_from_within_scheduled_actions()
+        {
+            var startTime = DateTimeOffset.Parse("1/1/2017 12:00am +00:00");
+
+            using (var clock = VirtualClock.Start(startTime))
+            {
+                clock.Schedule(async c =>
+                {
+                    await c.Wait(1.Minutes());
+                    c.Now().Should().Be(startTime + 2.Minutes());
+                }, 1.Minutes());
+
+                clock.Schedule(async c =>
+                {
+                    await c.Wait(2.Minutes());
+                    c.Now().Should().Be(startTime + 4.Minutes());
+                }, 2.Minutes());
+
+                clock.Schedule(async c =>
+                {
+                    await c.Wait(3.Minutes());
+                    c.Now().Should().Be(startTime + 6.Minutes());
+                }, 3.Minutes());
+
+                await clock.Wait(90.Minutes());
+                clock.Now().Should().Be(startTime + 90.Minutes());
             }
         }
 

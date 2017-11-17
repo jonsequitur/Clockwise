@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Pocket;
 
 namespace Clockwise
 {
@@ -52,33 +51,11 @@ namespace Clockwise
             this ICommandHandler<T> handler) =>
             handler.UseMiddleware(async (delivery, next) =>
             {
-                using (var operation = new ConfirmationLogger(
-                    operationName: "Handle",
-                    category: $"CommandHandler<{typeof(T).Name}>",
-                    message: delivery.Command.ToLogString(),
-                    logOnStart: true))
+                using (var operation = Log.Handle(delivery))
                 {
                     var result = await next(delivery);
 
-                    switch (result)
-                    {
-                        case CompleteDeliveryResult<T> _:
-                            operation.Succeed("Completed: {command}", delivery.Command);
-                            break;
-
-                        case RetryDeliveryResult<T> retry:
-                            operation.Fail(
-                                retry?.Exception,
-                                "Will retry: {command}",
-                                delivery.Command);
-                            break;
-                        case CancelDeliveryResult<T> cancel:
-                            operation.Fail(
-                                cancel?.Exception,
-                                "Canceled: {command}",
-                                delivery.Command);
-                            break;
-                    }
+                    Log.Completion(operation, delivery, result);
 
                     return result;
                 }

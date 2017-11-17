@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Pocket;
 
 namespace Clockwise
 {
@@ -65,27 +64,31 @@ namespace Clockwise
             receiver.UseMiddleware(
                 receive: async (handle, timeout, next) =>
                 {
-                    ICommandDelivery<T> delivery = null;
-
-                    using (For<T>.Log("Receive",
-                                      () => new (string, object)[] { ("delivery", delivery) }))
+                    return await next(async delivery =>
                     {
-                        return await next(d =>
+                        using (var operation = Log.Receive(delivery))
                         {
-                            delivery = d;
-                            return handle(d);
-                        }, timeout);
-                    }
+                            var result = await handle(delivery);
+
+                            Log.Completion(operation, delivery, result);
+
+                            return result;
+                        }
+                    }, timeout);
                 },
                 subscribe: (onNext, next) =>
                 {
-                    using (For<T>.Log("Subscribe"))
+                    using (Log.Subscribe<T>())
                     {
-                        return next(delivery =>
+                        return next(async delivery =>
                         {
-                            using (For<T>.Log("Receive", args: new object[] { delivery }))
+                            using (var operation1 = Log.Receive(delivery))
                             {
-                                return onNext(delivery);
+                                var result1 = await onNext(delivery);
+
+                                Log.Completion(operation1, delivery, result1);
+
+                                return result1;
                             }
                         });
                     }
@@ -105,20 +108,5 @@ namespace Clockwise
                 {
                     return subscribe(onNext, receiver.Subscribe);
                 });
-
-        private static class For<T>
-        {
-            private static readonly string category = $"{nameof(CommandReceiver)}<{typeof(T).Name}>";
-
-            public static OperationLogger Log(
-                string operationName,
-                Func<(string name, object value)[]> exitArgs = null,
-                object[] args = null) => new OperationLogger(
-                operationName,
-                category,
-                args: args,
-                exitArgs: exitArgs,
-                logOnStart: true);
-        }
     }
 }

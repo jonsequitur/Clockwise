@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Pocket;
-using static Pocket.Logger<Clockwise.VirtualClock>;
 
 namespace Clockwise
 {
     public class VirtualClock : IClock, IDisposable
     {
+        private static readonly Logger logger = Logger<VirtualClock>.Log;
+
         private readonly SortedList<DateTimeOffset, Action<VirtualClock>> schedule = new SortedList<DateTimeOffset, Action<VirtualClock>>();
 
         private readonly string createdBy;
@@ -34,7 +35,7 @@ namespace Clockwise
 
             var virtualClock = new VirtualClock(now);
 
-            Log.Trace("Starting at {now}", now);
+            logger.Trace("Starting at {now}", now);
 
             return virtualClock;
         }
@@ -63,8 +64,8 @@ namespace Clockwise
 
                     now = next;
                     var scheduleValue = schedule.Values[0];
-                    scheduleValue.Invoke(this);
                     schedule.RemoveAt(0);
+                    scheduleValue.Invoke(this);
                 }
 
                 operation.Succeed();
@@ -72,15 +73,6 @@ namespace Clockwise
                 now = time;
             }
         }
-
-        private ConfirmationLogger AndConfirmAdvancement(DateTimeOffset start, DateTimeOffset end) =>
-            new ConfirmationLogger(
-                nameof(AdvanceTo),
-                Log.Category,
-                "Advancing from {start} ({startTicks}) to {end} ({endTicks})",
-                args: new object[] { start, start.Ticks, end, end.Ticks },
-                exitArgs: () => new[] { ("nowAt", (object) now) },
-                logOnStart: true);
 
         public async Task AdvanceBy(TimeSpan timespan) =>
             await AdvanceTo(now.Add(timespan));
@@ -134,5 +126,14 @@ namespace Clockwise
                 return new TimeSpan?();
             }
         }
+
+        private ConfirmationLogger AndConfirmAdvancement(DateTimeOffset start, DateTimeOffset end) =>
+            new ConfirmationLogger(
+                nameof(AdvanceTo),
+                logger.Category,
+                "Advancing from {start} ({startTicks}) to {end} ({endTicks})",
+                args: new object[] { start, start.Ticks, end, end.Ticks },
+                exitArgs: () => new[] { ("nowAt", (object) now) },
+                logOnStart: true);
     }
 }

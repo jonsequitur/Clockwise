@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Pocket;
 
 namespace Clockwise
 {
@@ -41,14 +40,11 @@ namespace Clockwise
             this ICommandScheduler<T> scheduler) =>
             scheduler.UseMiddleware(async (delivery, next) =>
             {
-                using (new OperationLogger(
-                    "Schedule",
-                    $"CommandScheduler<{typeof(T).Name}>",
-                    message: "{delivery}",
-                    args: new object[] { delivery },
-                    logOnStart: true))
+                using (var operation = Log.Schedule(delivery))
                 {
                     await next(delivery);
+                    
+                    Log.Completion(operation, delivery);
                 }
             });
 
@@ -58,7 +54,5 @@ namespace Clockwise
             Create<T>(async delivery => await middleware(
                                             delivery,
                                             async d => await scheduler.Schedule(d)));
-
-     
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Threading.Tasks;
 using FluentAssertions;
+using System.Linq;
+using System.Threading.Tasks;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
@@ -12,21 +12,25 @@ namespace Clockwise.Tests
     {
         private readonly Configuration configuration;
         private readonly CompositeDisposable disposables = new CompositeDisposable();
-        private readonly ConcurrentQueue<string> log = new ConcurrentQueue<string>();
+        private readonly LogEntryList log = new LogEntryList();
+        private readonly VirtualClock clock;
 
         public DiagnosticTests(ITestOutputHelper output)
         {
-            disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
-            disposables.Add(LogEvents.Subscribe(e => log.Enqueue(e.ToLogString())));
+            configuration = new Configuration()
+                .UseInMemoryScheduling()
+                .TraceCommands();
+            disposables.Add(configuration);
+            disposables.Add(clock = VirtualClock.Start());
 
-            configuration = new Configuration();
-            disposables.Add(configuration.UseInMemoryScheduling());
+            disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
+            disposables.Add(LogEvents.Subscribe(log.Add));
         }
 
         public void Dispose() => disposables.Dispose();
 
         [Fact]
-        public async Task Trace_enables_diagnostic_output_on_all_schedulers()
+        public async Task Trace_enables_diagnostic_output_on_all_schedulers_when_Schedule_is_called()
         {
             configuration.TraceCommands();
 
@@ -35,10 +39,16 @@ namespace Clockwise.Tests
             await scheduler.Schedule(new CommandDelivery<string>(
                                          "hi!",
                                          dueTime: DateTimeOffset.Parse("1/31/2017 12:05am +00:00"),
-                                         idempotencyToken: "idempotency-token"));
+                                         idempotencyToken: "the-idempotency-token"));
 
-            log.Should().Contain(e => e.Contains("[CommandScheduler<String>] [Schedule]  ▶ hi! (idempotency-token) due 1/31/2017 12:05:00 AM +00:00"));
-            log.Should().Contain(e => e.Contains("[CommandScheduler<String>] [Schedule]  ⏹"));
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandScheduler<String>" &&
+                                   e.OperationName == "Schedule" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandScheduler<String>" &&
+                                   e.OperationName == "Schedule" &&
+                                   e.Operation.IsEnd);
         }
 
         [Fact]
@@ -53,7 +63,14 @@ namespace Clockwise.Tests
 
             await Clock.Current.Wait(1.Seconds());
 
-            log.Should().Contain(e => e.Contains("[CommandHandler<CreateCommandTarget>] [Handle]  ▶"));
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandHandler<CreateCommandTarget>" &&
+                                   e.OperationName == "Handle" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandHandler<CreateCommandTarget>" &&
+                                   e.OperationName == "Handle" &&
+                                   e.Operation.IsEnd);
         }
 
         [Fact]
@@ -71,8 +88,13 @@ namespace Clockwise.Tests
             await configuration.CommandReceiver<string>().Receive(handler);
 
             log.Should()
-               .Contain(e => e.Contains("[CommandReceiver<String>] [Receive]  ⏹") &&
-                             e.Contains("hi!"));
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Receive" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Receive" &&
+                                   e.Operation.IsEnd);
         }
 
         [Fact]
@@ -91,8 +113,14 @@ namespace Clockwise.Tests
 
             await Clock.Current.Wait(1.Seconds());
 
-            log.Should().Contain(e => e.Contains("[CommandReceiver<String>] [Receive]  ▶") &&
-                                      e.Contains("hi!"));
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Receive" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Receive" &&
+                                   e.Operation.IsEnd);
         }
 
         [Fact]
@@ -106,7 +134,148 @@ namespace Clockwise.Tests
 
             configuration.CommandReceiver<string>().Subscribe(handler);
 
-            log.Should().Contain(e => e.Contains("[CommandReceiver<String>] [Subscribe]  ▶"));
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Subscribe" &&
+                                   e.Operation.IsStart);
+            log.Should()
+               .ContainSingle(e => e.Category == "CommandReceiver<String>" &&
+                                   e.OperationName == "Subscribe" &&
+                                   e.Operation.IsEnd);
+        }
+
+        [Fact]
+        public async Task CommandScheduler_Trace_publishes_delivery_properties_as_telemetry_properties()
+        {
+            // arrange
+            var scheduler = CommandScheduler.Create<CreateCommandTarget>(c =>
+            {
+            }).Trace();
+
+            var delivery = new CommandDelivery<CreateCommandTarget>(
+                new CreateCommandTarget("the-id"),
+                idempotencyToken: "the-idempotency-token",
+                dueTime: DateTimeOffset.Parse("12/5/2086"));
+
+            // act
+            await scheduler.Schedule(delivery);
+
+            // assert
+            var logEvent = log[0];
+
+            logEvent
+                .Category
+                .Should()
+                .Be("CommandScheduler<CreateCommandTarget>",
+                    "we're verifying that we have the right log event");
+
+            var properties = logEvent
+                .Evaluate()
+                .Properties;
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "IdempotencyToken" &&
+                              t.Value.As<string>() == "the-idempotency-token");
+            properties
+                .Should()
+                .Contain(t => t.Name == "DueTime" &&
+                              t.Value.As<DateTimeOffset>() == delivery.DueTime);
+        }
+
+        [Fact]
+        public async Task CommandReceiver_Trace_publishes_delivery_properties_as_telemetry_properties()
+        {
+            // arrange
+            var dueTime = DateTimeOffset.Parse("12/5/2086");
+
+            var command = new CreateCommandTarget("the-id");
+
+            var handler = CommandHandler.Create<CreateCommandTarget>(d => d.Complete());
+
+            var delivery = new CommandDelivery<CreateCommandTarget>(
+                command,
+                idempotencyToken: "the-idempotency-token",
+                dueTime: dueTime,
+                numberOfPreviousAttempts: 4);
+            await configuration.CommandScheduler<CreateCommandTarget>().Schedule(delivery);
+
+            // act
+            await configuration.CommandReceiver<CreateCommandTarget>().Receive(handler);
+
+            // assert
+            var logEvent = log[4];
+
+            logEvent
+                .Category
+                .Should()
+                .Be("CommandReceiver<CreateCommandTarget>",
+                    "we're verifying that we have the right log event");
+
+            var properties = logEvent
+                .Evaluate()
+                .Properties;
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "IdempotencyToken" &&
+                              t.Value.As<string>() == "the-idempotency-token");
+            properties
+                .Should()
+                .Contain(t => t.Name == "DueTime" &&
+                              t.Value.As<DateTimeOffset>() == dueTime);
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "NumberOfPreviousAttempts" &&
+                              t.Value.As<int>() == 4);
+        }
+
+        [Fact]
+        public async Task CommandHandler_Trace_publishes_delivery_properties_as_telemetry_properties()
+        {
+            // arrange
+            var dueTime = DateTimeOffset.Parse("12/5/2086");
+
+            var handler = CommandHandler.Create<CreateCommandTarget>(d => d.Complete()).Trace();
+
+            var command = new CreateCommandTarget("the-id");
+
+            var delivery = new CommandDelivery<CreateCommandTarget>(
+                command,
+                idempotencyToken: "the-idempotency-token",
+                dueTime: dueTime,
+                numberOfPreviousAttempts: 4);
+
+            // act
+            await handler.Handle(delivery);
+
+            // assert
+            var logEvent = log[0];
+
+            logEvent
+                .Category
+                .Should()
+                .Be("CommandHandler<CreateCommandTarget>",
+                    "we're verifying that we have the right log event");
+
+            var properties = logEvent
+                .Evaluate()
+                .Properties;
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "IdempotencyToken" &&
+                              t.Value.As<string>() == "the-idempotency-token");
+            properties
+                .Should()
+                .Contain(t => t.Name == "DueTime" &&
+                              t.Value.As<DateTimeOffset>() == dueTime);
+
+            properties
+                .Should()
+                .Contain(t => t.Name == "NumberOfPreviousAttempts" &&
+                              t.Value.As<int>() == 4);
         }
     }
 }
