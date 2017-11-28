@@ -9,8 +9,7 @@ namespace Clockwise
     public class VirtualClock : IClock, IDisposable
     {
         private static readonly Logger logger = Logger<VirtualClock>.Log;
-
-        private readonly SortedList<DateTimeOffset, Action<VirtualClock>> schedule = new SortedList<DateTimeOffset, Action<VirtualClock>>();
+        private readonly List<(DateTimeOffset, Action<VirtualClock>)> schedule = new List<(DateTimeOffset, Action<VirtualClock>)>();
 
         private readonly string createdBy;
 
@@ -55,17 +54,16 @@ namespace Clockwise
             {
                 while (schedule.Count > 0)
                 {
-                    var next = schedule.Keys[0];
+                    var (nextTime, nextAction) = schedule[schedule.Count - 1];
 
-                    if (next > time)
+                    if (nextTime > time)
                     {
                         break;
                     }
 
-                    now = next;
-                    var scheduleValue = schedule.Values[0];
-                    schedule.RemoveAt(0);
-                    scheduleValue.Invoke(this);
+                    now = nextTime;
+                    schedule.RemoveAt(schedule.Count - 1);
+                    nextAction.Invoke(this);
                 }
 
                 operation.Succeed();
@@ -74,8 +72,7 @@ namespace Clockwise
             }
         }
 
-        public async Task AdvanceBy(TimeSpan timespan) =>
-            await AdvanceTo(now.Add(timespan));
+        public Task AdvanceBy(TimeSpan timespan) => AdvanceTo(now.Add(timespan));
 
         public override string ToString() => $"{now} [created by {createdBy}]";
 
@@ -94,12 +91,22 @@ namespace Clockwise
                 scheduledTime = after.Value;
             }
 
-            while (schedule.ContainsKey(scheduledTime))
+            int insertAt = 0;
+            for (var i = schedule.Count - 1; i >= 0; i--)
             {
-                scheduledTime = scheduledTime.AddTicks(1);
+                var (lookingAtTime, _) = schedule[i];
+                if (lookingAtTime == scheduledTime)
+                {
+                    scheduledTime = scheduledTime.AddTicks(1);
+                }
+                else if (lookingAtTime > scheduledTime)
+                {
+                    insertAt = i + 1;
+                    break;
+                }
             }
 
-            schedule.Add(scheduledTime, action);
+            schedule.Insert(insertAt, (scheduledTime, action));
         }
 
         public void Schedule(
@@ -113,9 +120,9 @@ namespace Clockwise
         {
             get
             {
-                for (var i = 0; i < schedule.Count; i++)
+                for (var i = schedule.Count - 1; i >= 0; i--)
                 {
-                    var due = schedule.Keys[i];
+                    var (due, _) = schedule[i];
 
                     if (due >= now)
                     {
@@ -133,7 +140,7 @@ namespace Clockwise
                 logger.Category,
                 "Advancing from {start} ({startTicks}) to {end} ({endTicks})",
                 args: new object[] { start, start.Ticks, end, end.Ticks },
-                exitArgs: () => new[] { ("nowAt", (object) now) },
+                exitArgs: () => new[] { ("nowAt", (object)now) },
                 logOnStart: true);
     }
 }
