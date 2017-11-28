@@ -52,10 +52,9 @@ namespace Clockwise
 
             using (var operation = AndConfirmAdvancement(now, time))
             {
-                int length;
-                while ((length = schedule.Count) > 0)
+                while (schedule.Count > 0)
                 {
-                    var (nextTime, nextAction) = schedule[length - 1];
+                    var (nextTime, nextAction) = schedule[schedule.Count - 1];
 
                     if (nextTime > time)
                     {
@@ -63,7 +62,7 @@ namespace Clockwise
                     }
 
                     now = nextTime;
-                    schedule.RemoveAt(length - 1);
+                    schedule.RemoveAt(schedule.Count - 1);
                     nextAction.Invoke(this);
                 }
 
@@ -92,9 +91,8 @@ namespace Clockwise
                 scheduledTime = after.Value;
             }
 
-            var length = schedule.Count;
             int insertAt = 0;
-            for (var i = length - 1; i >= 0; i--)
+            for (var i = schedule.Count - 1; i >= 0; i--)
             {
                 var (lookingAtTime, _) = schedule[i];
                 if (lookingAtTime == scheduledTime)
@@ -122,8 +120,7 @@ namespace Clockwise
         {
             get
             {
-                var length = schedule.Count;
-                for (var i = length - 1; i >= 0; i--)
+                for (var i = schedule.Count - 1; i >= 0; i--)
                 {
                     var (due, _) = schedule[i];
 
