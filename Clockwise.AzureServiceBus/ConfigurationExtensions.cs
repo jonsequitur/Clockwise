@@ -40,10 +40,11 @@ namespace Clockwise.AzureServiceBus
                                                   .CreateDelegate(typeof(Func<MessageReceiver, object>)) as Func<MessageReceiver, object>;
 
                                  var queueName = commandType.Name;
+                                 var receiver = new MessageReceiver(connectionString, queueName);
 
                                  return Create;
 
-                                 object Create(PocketContainer c) => create(new MessageReceiver(connectionString, queueName));
+                                 object Create(PocketContainer c) => create(receiver);
                              }
 
                              return null;
@@ -65,10 +66,11 @@ namespace Clockwise.AzureServiceBus
                                                   .CreateDelegate(typeof(Func<MessageSender, object>)) as Func<MessageSender, object>;
 
                                  var queueName = commandType.Name;
+                                 var sender = new MessageSender(connectionString, queueName);
 
                                  return Create;
 
-                                 object Create(PocketContainer c) => create(new MessageSender(connectionString, queueName));
+                                 object Create(PocketContainer c) => create(sender);
                              }
 
                              return null;
