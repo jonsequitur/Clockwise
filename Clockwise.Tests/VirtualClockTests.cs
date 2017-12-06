@@ -172,23 +172,23 @@ namespace Clockwise.Tests
         [Fact]
         public async Task A_schedule_action_can_be_scheduled_for_as_soon_as_possible_by_not_specifying_a_due_time()
         {
-            var events = new List<DateTimeOffset>();
+            var events = new List<(DateTimeOffset, string)>();
 
             var startTime = DateTimeOffset.Parse("1/1/2018 1:00pm +00:00");
 
             using (var clock = VirtualClock.Start(startTime))
             {
-                clock.Schedule(c => events.Add(c.Now()));
-                clock.Schedule(c => events.Add(c.Now()));
-                clock.Schedule(c => events.Add(c.Now()));
+                clock.Schedule(c => events.Add((c.Now(), "first")));
+                clock.Schedule(c => events.Add((c.Now(), "second")));
+                clock.Schedule(c => events.Add((c.Now(), "third")));
 
                 await clock.AdvanceBy(1.Seconds());
 
                 events.ShouldBeEquivalentTo(new[]
                 {
-                    startTime.AddTicks(1),
-                    startTime.AddTicks(2),
-                    startTime.AddTicks(3)
+                    (startTime, "first"),
+                    (startTime, "second"),
+                    (startTime, "third")
                 });
             }
         }

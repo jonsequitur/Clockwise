@@ -45,7 +45,7 @@ namespace Clockwise
         {
             await Task.Yield();
 
-            if (time <= now)
+            if (time < now)
             {
                 throw new ArgumentException("The clock cannot be moved backward in time.");
             }
@@ -60,10 +60,16 @@ namespace Clockwise
                     {
                         break;
                     }
+                    var shouldStop = nextTime == time;
 
                     now = nextTime;
                     schedule.RemoveAt(schedule.Count - 1);
                     nextAction.Invoke(this);
+
+                    if (shouldStop)
+                    {
+                        break;
+                    }
                 }
 
                 operation.Succeed();
@@ -84,7 +90,7 @@ namespace Clockwise
 
             if (after == null || after <= now)
             {
-                scheduledTime = now.AddTicks(1);
+                scheduledTime = now;
             }
             else
             {
@@ -95,11 +101,7 @@ namespace Clockwise
             for (var i = schedule.Count - 1; i >= 0; i--)
             {
                 var (lookingAtTime, _) = schedule[i];
-                if (lookingAtTime == scheduledTime)
-                {
-                    scheduledTime = scheduledTime.AddTicks(1);
-                }
-                else if (lookingAtTime > scheduledTime)
+                if (lookingAtTime > scheduledTime)
                 {
                     insertAt = i + 1;
                     break;
