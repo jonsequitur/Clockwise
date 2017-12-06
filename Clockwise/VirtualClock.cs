@@ -120,17 +120,15 @@ namespace Clockwise
         {
             get
             {
-                for (var i = schedule.Count - 1; i >= 0; i--)
+                if (schedule.Count == 0)
                 {
-                    var (due, _) = schedule[i];
-
-                    if (due >= now)
-                    {
-                        return due - now;
-                    }
+                    return null;
                 }
-
-                return new TimeSpan?();
+                else
+                {
+                    var (next, _) = schedule[schedule.Count - 1];
+                    return next - now;
+                }
             }
         }
 
