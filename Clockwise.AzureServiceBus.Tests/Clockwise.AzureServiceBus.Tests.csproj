@@ -18,7 +18,7 @@
     <PackageReference Include="microsoft.extensions.configuration.json" Version="2.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
     <PackageReference Include="pocket.disposable" Version="1.0.3" />
-    <PackageReference Include="pocketlogger.subscribe" Version="0.2.4" />
+    <PackageReference Include="pocketlogger.subscribe" Version="0.5.1" />
     <PackageReference Include="xunit" Version="2.3.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.0" />
   </ItemGroup>
