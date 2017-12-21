@@ -331,7 +331,7 @@ namespace Clockwise.Tests
             var startTime = DateTimeOffset.Parse("9/2/2017 12:03:04pm");
             var log = new List<string>();
 
-            using (LogEvents.Subscribe(e => log.Add(e.ToLogString())))
+            using (LogEvents.Subscribe(e => log.Add(e.ToLogString()), new[] { typeof(VirtualClock).Assembly }))
             using (var clock = VirtualClock.Start(startTime))
             {
                 await clock.AdvanceBy(1.Milliseconds());

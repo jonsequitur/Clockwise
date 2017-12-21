@@ -13,7 +13,6 @@ namespace Clockwise.Tests
         private readonly Configuration configuration;
         private readonly CompositeDisposable disposables = new CompositeDisposable();
         private readonly LogEntryList log = new LogEntryList();
-        private readonly VirtualClock clock;
 
         public DiagnosticTests(ITestOutputHelper output)
         {
@@ -21,10 +20,11 @@ namespace Clockwise.Tests
                 .UseInMemoryScheduling()
                 .TraceCommands();
             disposables.Add(configuration);
-            disposables.Add(clock = VirtualClock.Start());
+            disposables.Add(VirtualClock.Start());
 
-            disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
-            disposables.Add(LogEvents.Subscribe(log.Add));
+            var fromAssemblies = new[] { GetType().Assembly, typeof(ICommandScheduler<>).Assembly };
+            disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString()), fromAssemblies));
+            disposables.Add(LogEvents.Subscribe(log.Add, fromAssemblies));
         }
 
         public void Dispose() => disposables.Dispose();
