@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using FluentAssertions;
 using System.Linq;
 using System.Threading;
@@ -26,7 +27,7 @@ namespace Clockwise.Tests
         [Fact]
         public void Clock_can_be_overridden_using_VirtualClock()
         {
-            var virtualTime = DateTimeOffset.Parse("6/2/2027 12:23am");
+            var virtualTime = DateTimeOffset.Parse("2027-06-02 12:23am", CultureInfo.InvariantCulture);
 
             using (VirtualClock.Start(virtualTime))
             {
@@ -37,7 +38,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task Instantiating_a_VirtualClock_freezes_time()
         {
-            var virtualTime = DateTimeOffset.Parse("6/2/2027 12:23am");
+            var virtualTime = DateTimeOffset.Parse("2027-06-02 12:23am", CultureInfo.InvariantCulture);
 
             using (VirtualClock.Start(virtualTime))
             {
@@ -50,8 +51,8 @@ namespace Clockwise.Tests
         [Fact]
         public async Task The_clock_can_be_advanced_to_a_specific_time()
         {
-            var initialTime = DateTimeOffset.Parse("6/15/2017 1:00pm");
-            var newTime = DateTimeOffset.Parse("6/16/2018 1:50pm");
+            var initialTime = DateTimeOffset.Parse("2017-01-15 1:00pm", CultureInfo.InvariantCulture);
+            var newTime = DateTimeOffset.Parse("2018-06-16 1:50pm", CultureInfo.InvariantCulture);
 
             using (var clock = VirtualClock.Start(initialTime))
             {
@@ -64,7 +65,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task The_clock_can_be_advanced_by_a_specific_timespan()
         {
-            var initialTime = DateTimeOffset.Parse("6/15/2017 1:00pm");
+            var initialTime = DateTimeOffset.Parse("2017-6-15 1:00pm", CultureInfo.InvariantCulture);
 
             using (var clock = VirtualClock.Start(initialTime))
             {
@@ -128,7 +129,7 @@ namespace Clockwise.Tests
         {
             var events = new List<DateTimeOffset>();
 
-            var startTime = DateTimeOffset.Parse("1/1/2018 1:00pm +00:00");
+            var startTime = DateTimeOffset.Parse("2018-04-01 1:00pm +00:00", CultureInfo.InvariantCulture);
 
             using (var clock = VirtualClock.Start(startTime))
             {
@@ -151,7 +152,7 @@ namespace Clockwise.Tests
         public async Task A_scheduled_action_can_schedule_additional_actions()
         {
             DateTimeOffset secondActionExecutedAt;
-            var startTime = DateTimeOffset.Parse("1/1/2018 1:00pm +00:00");
+            var startTime = DateTimeOffset.Parse("2018-01-01 1:00pm +00:00", CultureInfo.InvariantCulture);
 
             using (var clock = VirtualClock.Start(startTime))
             {
@@ -174,7 +175,7 @@ namespace Clockwise.Tests
         {
             var events = new List<(DateTimeOffset, string)>();
 
-            var startTime = DateTimeOffset.Parse("1/1/2018 1:00pm +00:00");
+            var startTime = DateTimeOffset.Parse("2018-01-01 1:00pm +00:00", CultureInfo.InvariantCulture);
 
             using (var clock = VirtualClock.Start(startTime))
             {
@@ -285,7 +286,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task Clock_Now_is_correct_when_clock_is_advanced_from_within_scheduled_actions()
         {
-            var startTime = DateTimeOffset.Parse("1/1/2017 12:00am +00:00");
+            var startTime = DateTimeOffset.Parse("2017-01-01 12:00am +00:00", CultureInfo.InvariantCulture);
 
             using (var clock = VirtualClock.Start(startTime))
             {
@@ -315,7 +316,7 @@ namespace Clockwise.Tests
         [Fact]
         public void VirtualClock_logs_the_time_on_start()
         {
-            var startTime = DateTimeOffset.Parse("9/2/2017 12:03:04pm");
+            var startTime = DateTimeOffset.Parse("2017-09-02 12:03:04pm", CultureInfo.InvariantCulture);
             var log = new List<string>();
 
             using (LogEvents.Subscribe(e => log.Add(e.ToLogString())))
@@ -328,7 +329,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task When_advanced_it_logs_the_time_and_ticks_at_start_and_stop_of_operation()
         {
-            var startTime = DateTimeOffset.Parse("9/2/2017 12:03:04pm");
+            var startTime = DateTimeOffset.Parse("2017-09-02 12:03:04pm", CultureInfo.InvariantCulture);
             var log = new List<string>();
 
             using (LogEvents.Subscribe(e => log.Add(e.ToLogString()), new[] { typeof(VirtualClock).Assembly }))

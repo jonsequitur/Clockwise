@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using FluentAssertions;
 using System.Linq;
 using Xunit;
@@ -33,7 +34,7 @@ namespace Clockwise.Tests
         [Fact]
         public void When_a_retry_is_specified_then_the_due_time_is_calculated_from_the_original_due_time()
         {
-            var originalDueTime = DateTimeOffset.Parse("1/1/2018 12:00pm +00:00");
+            var originalDueTime = DateTimeOffset.Parse("2018-01-01 12:00pm +00:00", CultureInfo.InvariantCulture);
 
             var delivery = new CommandDelivery<string>(
                 "hello",
@@ -68,7 +69,7 @@ namespace Clockwise.Tests
         [Fact]
         public void When_a_retry_is_specified_then_the_original_due_time_is_unchanged()
         {
-            var originalDueTime = DateTimeOffset.Parse("1/1/2018 12:00pm +00:00");
+            var originalDueTime = DateTimeOffset.Parse("2018-01-01 12:00pm +00:00", CultureInfo.InvariantCulture);
 
             var delivery = new CommandDelivery<string>("hello", dueTime: originalDueTime);
 
