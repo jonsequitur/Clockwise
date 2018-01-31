@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using FluentAssertions;
 using System.Linq;
 using System.Threading.Tasks;
@@ -49,7 +50,7 @@ namespace Clockwise.Tests
         {
             var log = new List<DateTimeOffset>();
 
-            using (var clock = VirtualClock.Start(DateTimeOffset.Parse("1/1/2019 12:00:00 +00:00")))
+            using (var clock = VirtualClock.Start(DateTimeOffset.Parse("1/1/2019 12:00:00 +00:00", CultureInfo.InvariantCulture)))
             {
                 clock.Repeat(async c =>
                 {
@@ -67,7 +68,7 @@ namespace Clockwise.Tests
         {
             var log = new List<DateTimeOffset>();
 
-            using (var clock = VirtualClock.Start(DateTimeOffset.Parse("1/1/2019 12:00:00 +00:00")))
+            using (var clock = VirtualClock.Start(DateTimeOffset.Parse("1/1/2019 12:00:00 +00:00", CultureInfo.InvariantCulture)))
             {
                 var disposable = clock.Repeat(async c =>
                 {

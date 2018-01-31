@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using FluentAssertions;
 using System.Linq;
 using System.Threading.Tasks;
@@ -38,7 +39,7 @@ namespace Clockwise.Tests
 
             await scheduler.Schedule(new CommandDelivery<string>(
                                          "hi!",
-                                         dueTime: DateTimeOffset.Parse("1/31/2017 12:05am +00:00"),
+                                         dueTime: DateTimeOffset.Parse("2017-01-31 12:05am +00:00", CultureInfo.InvariantCulture),
                                          idempotencyToken: "the-idempotency-token"));
 
             log.Should()
@@ -155,7 +156,7 @@ namespace Clockwise.Tests
             var delivery = new CommandDelivery<CreateCommandTarget>(
                 new CreateCommandTarget("the-id"),
                 idempotencyToken: "the-idempotency-token",
-                dueTime: DateTimeOffset.Parse("12/5/2086"));
+                dueTime: DateTimeOffset.Parse("2086-12-05", CultureInfo.InvariantCulture));
 
             // act
             await scheduler.Schedule(delivery);
@@ -187,7 +188,7 @@ namespace Clockwise.Tests
         public async Task CommandReceiver_Trace_publishes_delivery_properties_as_telemetry_properties()
         {
             // arrange
-            var dueTime = DateTimeOffset.Parse("12/5/2086");
+            var dueTime = DateTimeOffset.Parse("2086-12-05", CultureInfo.InvariantCulture);
 
             var command = new CreateCommandTarget("the-id");
 
@@ -235,7 +236,7 @@ namespace Clockwise.Tests
         public async Task CommandHandler_Trace_publishes_delivery_properties_as_telemetry_properties()
         {
             // arrange
-            var dueTime = DateTimeOffset.Parse("12/5/2086");
+            var dueTime = DateTimeOffset.Parse("2086-12-05", CultureInfo.InvariantCulture);
 
             var handler = CommandHandler.Create<CreateCommandTarget>(d => d.Complete()).Trace();
 
