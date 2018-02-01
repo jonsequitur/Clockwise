@@ -12,7 +12,7 @@ namespace Clockwise
     {
         private readonly IClock clock;
 
-        private readonly ConcurrentBag<TimeBudgetEntry> withdrawals = new ConcurrentBag<TimeBudgetEntry>();
+        private readonly ConcurrentBag<TimeBudgetEntry> entries = new ConcurrentBag<TimeBudgetEntry>();
 
         public TimeBudget(IClock clock, TimeSpan duration)
         {
@@ -40,26 +40,26 @@ namespace Clockwise
 
         public bool IsExceeded => RemainingDuration < TimeSpan.Zero;
 
-        public IReadOnlyCollection<TimeBudgetEntry> Entries => withdrawals.OrderBy(e => e.ElapsedDuration).ToArray();
+        public IReadOnlyCollection<TimeBudgetEntry> Entries => entries.OrderBy(e => e.ElapsedDuration).ToArray();
 
         public CancellationToken CancellationToken { get; }
 
-        public void Consume([CallerMemberName] string checkpointName = null)
+        public void RecordEntry([CallerMemberName] string name = null)
         {
-            withdrawals.Add(new TimeBudgetEntry(checkpointName, this));
+            entries.Add(new TimeBudgetEntry(name, this));
         }
 
-        public void ConsumeAndThrowIfBudgetExceeded([CallerMemberName] string checkpointName = null)
+        public void RecordEntryAndThrowIfBudgetExceeded([CallerMemberName] string name = null)
         {
             var now = clock.Now();
 
-            Consume(checkpointName);
+            RecordEntry(name);
 
             if (IsExceeded)
             {
                 var ws =
-                    withdrawals.Any()
-                        ? $"{NewLine}  {string.Join($"{NewLine}  ", withdrawals.OrderBy(w => w.ElapsedDuration).Select(c => c.ToString()))}"
+                    entries.Any()
+                        ? $"{NewLine}  {string.Join($"{NewLine}  ", entries.OrderBy(w => w.ElapsedDuration).Select(c => c.ToString()))}"
                         : "";
 
                 throw new TimeBudgetExceededException($"Time budget of {TotalDuration.TotalSeconds} seconds exceeded at {now}{ws}");

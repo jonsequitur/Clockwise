@@ -102,11 +102,11 @@ namespace Clockwise.Tests
 
                 await clock.AdvanceBy(1.Seconds());
 
-                budget.Consume("one");
+                budget.RecordEntry("one");
 
                 await clock.AdvanceBy(10.Seconds());
 
-                Action action = () => budget.ConsumeAndThrowIfBudgetExceeded("two");
+                Action action = () => budget.RecordEntryAndThrowIfBudgetExceeded("two");
 
                 action.ShouldThrow<TimeBudgetExceededException>()
                       .Which
@@ -127,15 +127,15 @@ namespace Clockwise.Tests
 
                 await clock.AdvanceBy(5.Seconds());
 
-                budget.Consume("one");
+                budget.RecordEntry("one");
 
                 await clock.AdvanceBy(8.Seconds());
 
-                budget.Consume("two");
+                budget.RecordEntry("two");
 
                 await clock.AdvanceBy(13.Seconds());
 
-                budget.Consume("three");
+                budget.RecordEntry("three");
 
                 budget.Entries
                       .Select(e => e.ToString())

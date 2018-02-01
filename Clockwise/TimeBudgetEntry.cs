@@ -29,9 +29,15 @@ namespace Clockwise
 
         public override string ToString()
         {
-            var glyph = BudgetWasExceeded ? "❌" : "✔";
-            var y = BudgetWasExceeded ? $" (budget exceeded by {Math.Abs(remainingDuration.TotalSeconds)} seconds)" : string.Empty;
-            return $"{glyph} {Name} @ {ElapsedDuration.TotalSeconds} seconds{y}";
+            var symbol = BudgetWasExceeded
+                             ? "❌"
+                             : "✔";
+
+            var exceededMessage = BudgetWasExceeded
+                                      ? $" (budget exceeded by {Math.Abs(remainingDuration.TotalSeconds)} seconds)"
+                                      : string.Empty;
+
+            return $"{symbol} {Name} @ {ElapsedDuration.TotalSeconds} seconds{exceededMessage}";
         }
     }
 }
