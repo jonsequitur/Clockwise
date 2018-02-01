@@ -1,88 +1,78 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using FluentAssertions;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Xunit;
 
 namespace Clockwise.Tests
 {
-    public class ClockExtensionsTests
+    public class TaskExtensionsTests
     {
         [Fact]
-        public async Task VirtualClock_Wait_waits_until_the_specified_period_of_time_has_passed_and_scheduled_actions_are_triggered()
+        public void CancelAfter_can_use_a_CancellationToken_to_cancel_a_non_cancellable_task()
         {
-            var receivedCount = 0;
+            var source = new CancellationTokenSource();
 
-            using (var clock = VirtualClock.Start())
+            Func<Task> x = async () => await Task.Run(async () =>
             {
-                clock.Schedule(_ => receivedCount++,
-                               1.Seconds());
-                clock.Schedule(_ => receivedCount++,
-                               3.Seconds());
-
-                await clock.Wait(2.Seconds());
-            }
-
-            receivedCount.Should().Be(1);
-        }
-
-        [Fact]
-        public async Task RealtimeClock_Wait_waits_until_the_specified_period_of_time_has_passed_and_scheduled_actions_are_triggered()
-        {
-            var receivedCount = 0;
-
-            var clock = new RealtimeClock();
-
-            clock.Schedule(_ => receivedCount++,
-                           1.Seconds());
-            clock.Schedule(_ => receivedCount++,
-                           3.Seconds());
-
-            await clock.Wait(2.Seconds());
-
-            receivedCount.Should().Be(1);
-        }
-
-        [Fact]
-        public async Task Repeat_runs_a_specified_action_repeatedly_at_the_specified_interval()
-        {
-            var log = new List<DateTimeOffset>();
-
-            using (var clock = VirtualClock.Start(DateTimeOffset.Parse("1/1/2019 12:00:00 +00:00", CultureInfo.InvariantCulture)))
-            {
-                clock.Repeat(async c =>
+                while (true)
                 {
-                    log.Add(c.Now());
-                }, () => 1.Days());
+                    await Task.Delay(100);
+                    source.Cancel();
+                }
+            }).CancelAfter(source.Token);
 
-                await clock.AdvanceBy(10.Days());
-            }
-
-            log.Select(d => d.Day).Should().BeEquivalentTo(2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+            x.ShouldThrow<TimeoutException>();
         }
 
         [Fact]
-        public async Task Repeat_stops_running_when_disposed()
+        public void CancelAfter_T_can_use_a_CancellationToken_to_cancel_a_non_cancellable_task()
         {
-            var log = new List<DateTimeOffset>();
+            var source = new CancellationTokenSource();
 
-            using (var clock = VirtualClock.Start(DateTimeOffset.Parse("1/1/2019 12:00:00 +00:00", CultureInfo.InvariantCulture)))
+            Func<Task<bool>> x = async () => await Task.Run(async () =>
             {
-                var disposable = clock.Repeat(async c =>
+                while (true)
                 {
-                    log.Add(c.Now());
-                }, () => 1.Days());
+                    await Task.Delay(100);
+                    source.Cancel();
+                }
 
-                await clock.AdvanceBy(5.Days());
+                return true;
+            }).CancelAfter(source.Token);
 
-                disposable.Dispose();
+            x.ShouldThrow<TimeoutException>();
+        }
 
-                await clock.AdvanceBy(5.Days());
-            }
+        [Fact]
+        public async Task CancelAfter_can_return_a_fallback_value_rather_than_throw_if_cancellation_occurs()
+        {
+            var source = new CancellationTokenSource();
 
-            log.Select(d => d.Day).Should().BeEquivalentTo(2, 3, 4, 5, 6);
+            var result = await Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await Task.Delay(100);
+                    source.Cancel();
+                }
+
+                return "not cancelled";
+            }).CancelAfter(source.Token,
+                           ifCancelled: () => "cancelled");
+
+            result.Should().Be("cancelled");
+        }
+
+        [Fact]
+        public async Task CancelAfter_returns_the_value_from_a_task_that_completes_before_cancellation()
+        {
+            var source = new CancellationTokenSource(10.Seconds());
+
+            var result = await Task.Run(() => true)
+                                   .CancelAfter(source.Token);
+
+            result.Should().BeTrue();
         }
     }
 }

@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using FluentAssertions;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
-using static Pocket.Logger;
 
 namespace Clockwise.Tests
 {
