@@ -50,7 +50,7 @@ namespace Clockwise
                 throw new ArgumentException("The clock cannot be moved backward in time.");
             }
 
-            using (var operation = AndConfirmAdvancement(now, time))
+            using (var operation = LogAndConfirmAdvancement(now, time))
             {
                 while (schedule.Count > 0)
                 {
@@ -134,7 +134,7 @@ namespace Clockwise
             }
         }
 
-        private ConfirmationLogger AndConfirmAdvancement(DateTimeOffset start, DateTimeOffset end) =>
+        private ConfirmationLogger LogAndConfirmAdvancement(DateTimeOffset start, DateTimeOffset end) =>
             new ConfirmationLogger(
                 nameof(AdvanceTo),
                 logger.Category,
