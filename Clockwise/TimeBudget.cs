@@ -55,5 +55,7 @@ namespace Clockwise
                 throw new TimeBudgetExceededException(this);
             }
         }
+
+        public static TimeBudget Unlimited() => new TimeBudget(DateTimeOffset.MaxValue - Clockwise.Clock.Now());
     }
 }

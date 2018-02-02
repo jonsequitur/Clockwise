@@ -165,5 +165,18 @@ namespace Clockwise.Tests
                 token.IsCancellationRequested.Should().BeTrue();
             }
         }
+
+        [Fact]
+        public async Task TimeBudget_Unlimited_does_not_expire()
+        {
+            using (var clock = VirtualClock.Start())
+            {
+                var budget = TimeBudget.Unlimited();
+
+                await clock.AdvanceBy(30.Days());
+
+                budget.IsExceeded.Should().BeFalse();
+            }
+        }
     }
 }
