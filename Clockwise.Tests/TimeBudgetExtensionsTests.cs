@@ -43,6 +43,8 @@ namespace Clockwise.Tests
             var actionPerformed = false;
             var budget = new TimeBudget(2.Seconds(), clock);
 
+            clock.Schedule(async c => await Task.Delay(10));
+
             await clock.Wait(10.Seconds())
                        .CancelIfExceeds(budget,
                                         ifCancelled: () => actionPerformed = true);
