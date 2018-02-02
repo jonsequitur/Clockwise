@@ -11,7 +11,7 @@ namespace Clockwise
     {
         private readonly ConcurrentBag<TimeBudgetEntry> entries = new ConcurrentBag<TimeBudgetEntry>();
 
-        public TimeBudget(IClock clock, TimeSpan duration)
+        public TimeBudget(TimeSpan duration, IClock clock = null)
         {
             if (duration <= TimeSpan.Zero)
             {
@@ -20,11 +20,11 @@ namespace Clockwise
 
             TotalDuration = duration;
 
-            Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+            Clock = clock ?? Clockwise.Clock.Current;
 
-            StartTime = clock.Now();
+            StartTime = Clock.Now();
 
-            CancellationToken = clock.CreateCancellationToken(duration);
+            CancellationToken = Clock.CreateCancellationToken(duration);
         }
 
         internal IClock Clock { get; }

@@ -19,7 +19,7 @@ namespace Clockwise.Tests
 
             using (var clock = VirtualClock.Start(startTime))
             {
-                var budget = new TimeBudget(clock, 5.Seconds());
+                var budget = new TimeBudget(5.Seconds(), clock);
 
                 budget.StartTime.Should().Be(clock.Now());
             }
@@ -30,7 +30,7 @@ namespace Clockwise.Tests
         {
             using (var clock = VirtualClock.Start())
             {
-                var budget = new TimeBudget(clock, 5.Seconds());
+                var budget = new TimeBudget(5.Seconds(), clock);
 
                 await clock.AdvanceBy(3.Seconds());
 
@@ -47,7 +47,7 @@ namespace Clockwise.Tests
 
             using (var clock = VirtualClock.Start(startTime))
             {
-                var budget = new TimeBudget(clock, 5.Seconds());
+                var budget = new TimeBudget(5.Seconds(), clock);
 
                 await clock.AdvanceBy(5.Minutes());
 
@@ -58,7 +58,7 @@ namespace Clockwise.Tests
         [Fact]
         public void TimeBudget_cannot_be_created_with_a_timespan_of_zero()
         {
-            Action action = () => new TimeBudget(Clock.Current, TimeSpan.Zero);
+            Action action = () => new TimeBudget(TimeSpan.Zero, Clock.Current);
 
             action.ShouldThrow<ArgumentException>();
         }
@@ -68,7 +68,7 @@ namespace Clockwise.Tests
         {
             using (var clock = VirtualClock.Start())
             {
-                var budget = new TimeBudget(clock, 5.Seconds());
+                var budget = new TimeBudget(5.Seconds(), clock);
 
                 await clock.AdvanceBy(6.Seconds());
 
@@ -81,7 +81,7 @@ namespace Clockwise.Tests
         {
             using (var clock = VirtualClock.Start())
             {
-                var budget = new TimeBudget(clock, 5.Seconds());
+                var budget = new TimeBudget(5.Seconds(), clock);
 
                 await clock.AdvanceBy(2.Seconds());
 
@@ -98,7 +98,7 @@ namespace Clockwise.Tests
 
             using (var clock = VirtualClock.Start(startTime))
             {
-                var budget = new TimeBudget(clock, 5.Seconds());
+                var budget = new TimeBudget(5.Seconds(), clock);
 
                 await clock.AdvanceBy(1.Seconds());
 
@@ -123,7 +123,7 @@ namespace Clockwise.Tests
         {
             using (var clock = VirtualClock.Start())
             {
-                var budget = new TimeBudget(clock, 15.Seconds());
+                var budget = new TimeBudget(15.Seconds(), clock);
 
                 await clock.AdvanceBy(5.Seconds());
 
@@ -152,7 +152,7 @@ namespace Clockwise.Tests
         {
             using (var clock = VirtualClock.Start())
             {
-                var budget = new TimeBudget(clock, 10.Seconds());
+                var budget = new TimeBudget(10.Seconds(), clock);
 
                 var token = budget.CancellationToken;
 
