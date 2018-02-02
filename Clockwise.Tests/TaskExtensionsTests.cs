@@ -26,6 +26,25 @@ namespace Clockwise.Tests
         }
 
         [Fact]
+        public async Task CancelAfter_can_perform_an_action_rather_than_throw_if_cancellation_occurs()
+        {
+            var actionPerformed = false;
+            var source = new CancellationTokenSource();
+
+            await Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await Task.Delay(100);
+                    source.Cancel();
+                }
+            }).CancelAfter(source.Token,
+                           ifCancelled: () => actionPerformed = true);
+
+            actionPerformed.Should().BeTrue();
+        }
+
+        [Fact]
         public void CancelAfter_T_can_use_a_CancellationToken_to_cancel_a_non_cancellable_task()
         {
             var source = new CancellationTokenSource();
@@ -45,7 +64,18 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task CancelAfter_can_return_a_fallback_value_rather_than_throw_if_cancellation_occurs()
+        public async Task CancelAfter_T_returns_the_value_from_a_task_that_completes_before_cancellation()
+        {
+            var source = new CancellationTokenSource(10.Seconds());
+
+            var result = await Task.Run(() => true)
+                                   .CancelAfter(source.Token);
+
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task CancelAfter_T_can_return_a_fallback_value_rather_than_throw_if_cancellation_occurs()
         {
             var source = new CancellationTokenSource();
 
@@ -62,17 +92,6 @@ namespace Clockwise.Tests
                            ifCancelled: () => "cancelled");
 
             result.Should().Be("cancelled");
-        }
-
-        [Fact]
-        public async Task CancelAfter_returns_the_value_from_a_task_that_completes_before_cancellation()
-        {
-            var source = new CancellationTokenSource(10.Seconds());
-
-            var result = await Task.Run(() => true)
-                                   .CancelAfter(source.Token);
-
-            result.Should().BeTrue();
         }
     }
 }

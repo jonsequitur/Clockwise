@@ -42,7 +42,8 @@ namespace Clockwise
 
         public static Task CancelAfter(
             this Task task,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Action ifCancelled = null)
         {
             if (task.IsCompleted)
             {
@@ -59,7 +60,14 @@ namespace Clockwise
 
                 if (firstToComplete == timeout)
                 {
-                    throw new TimeoutException();
+                    if (ifCancelled == null)
+                    {
+                        throw new TimeoutException();
+                    }
+                    else
+                    {
+                        ifCancelled();
+                    }
                 }
             });
         }
