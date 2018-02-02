@@ -6,70 +6,54 @@ namespace Clockwise
 {
     public static class TaskExtensions
     {
-        public static Task<T> CancelAfter<T>(
+        public static async Task<T> CancelAfter<T>(
             this Task<T> task,
             CancellationToken cancellationToken,
             Func<T> ifCancelled = null)
         {
-            if (task.IsCompleted)
-            {
-                return task;
-            }
-
             var timeout = Task.Delay(-1, cancellationToken);
 
-            return Task.Run(async () =>
+            Task firstToComplete = await Task.WhenAny(
+                task,
+                timeout);
+
+            if (firstToComplete == timeout)
             {
-                var firstToComplete = await Task.WhenAny(
-                                          task,
-                                          timeout);
-
-                if (firstToComplete == timeout)
+                if (ifCancelled == null)
                 {
-                    if (ifCancelled == null)
-                    {
-                        throw new TimeoutException();
-                    }
-                    else
-                    {
-                        return ifCancelled();
-                    }
+                    throw new TimeoutException();
                 }
+                else
+                {
+                    return ifCancelled();
+                }
+            }
 
-                return task.Result;
-            });
+            return await task;
         }
 
-        public static Task CancelAfter(
+        public static async Task CancelAfter(
             this Task task,
             CancellationToken cancellationToken,
             Action ifCancelled = null)
         {
-            if (task.IsCompleted)
-            {
-                return task;
-            }
-
             var timeout = Task.Delay(-1, cancellationToken);
 
-            return Task.Run(async () =>
-            {
-                var firstToComplete = await Task.WhenAny(
-                                          task,
-                                          timeout);
+            var firstToComplete = await Task.WhenAny(
+                                      task,
+                                      timeout);
 
-                if (firstToComplete == timeout)
+            if (firstToComplete == timeout)
+            {
+                if (ifCancelled == null)
                 {
-                    if (ifCancelled == null)
-                    {
-                        throw new TimeoutException();
-                    }
-                    else
-                    {
-                        ifCancelled();
-                    }
+                    throw new TimeoutException();
                 }
-            });
+                else
+                {
+                    ifCancelled();
+                }
+            }
         }
     }
 }
