@@ -90,6 +90,19 @@ namespace Clockwise.Tests
         }
 
         [Fact]
+        public async Task When_TimeBudhget_is_exceeded_then_RemainingDuration_is_zero()
+        {
+            using (var clock = VirtualClock.Start())
+            {
+                var budget = new TimeBudget(5.Seconds(), clock);
+
+                await clock.AdvanceBy(20.Seconds());
+
+                budget.RemainingDuration.Should().Be(TimeSpan.Zero);
+            }
+        }
+
+        [Fact]
         public async Task TimeBudget_can_throw_if_no_time_is_left()
         {
             var startTime = DateTimeOffset.Parse(
@@ -176,7 +189,20 @@ namespace Clockwise.Tests
                 await clock.AdvanceBy(30.Days());
 
                 budget.IsExceeded.Should().BeFalse();
+                budget.ElapsedDuration.Should().Be(30.Days());
             }
+        }
+
+        [Fact]
+        public void TimeBudget_Unlimited_works_with_realtime_clock()
+        {
+            var budget = TimeBudget.Unlimited();
+
+            budget.RemainingDuration.Should().BeGreaterThan(10000.Days());
+            budget.IsExceeded.Should().BeFalse();
+            budget.ElapsedDuration.Should().BeLessOrEqualTo(1.Seconds());
+            budget.RecordEntry("one");
+            budget.Entries.Last().BudgetWasExceeded.Should().BeFalse();
         }
     }
 }

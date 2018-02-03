@@ -11,33 +11,58 @@ namespace Clockwise
     {
         private readonly ConcurrentBag<TimeBudgetEntry> entries = new ConcurrentBag<TimeBudgetEntry>();
 
-        public TimeBudget(TimeSpan duration, IClock clock = null)
+        public TimeBudget(TimeSpan duration, IClock clock = null) : this(false, duration, clock)
         {
-            if (duration <= TimeSpan.Zero)
-            {
-                throw new ArgumentException($"{nameof(duration)} must be greater than zero.");
-            }
+        }
 
-            TotalDuration = duration;
-
+        private TimeBudget(
+            bool unlimited,
+            TimeSpan? duration = null,
+            IClock clock = null)
+        {
             Clock = clock ?? Clockwise.Clock.Current;
 
             StartTime = Clock.Now();
 
-            CancellationToken = Clock.CreateCancellationToken(duration);
+            if (unlimited)
+            {
+                TotalDuration = TimeSpan.MaxValue;
+                CancellationToken = new CancellationTokenSource().Token;
+            }
+            else
+            {
+                if (duration == null ||
+                    duration <= TimeSpan.Zero)
+                {
+                    throw new ArgumentException($"{nameof(duration)} must be greater than zero.");
+                }
+
+                TotalDuration = duration.Value;
+                CancellationToken = Clock.CreateCancellationToken(TotalDuration);
+            }
         }
 
         internal IClock Clock { get; }
 
         public DateTimeOffset StartTime { get; }
 
-        public TimeSpan RemainingDuration => TotalDuration - ElapsedDuration;
+        public TimeSpan RemainingDuration
+        {
+            get
+            {
+                var remaining = TotalDuration - ElapsedDuration;
+
+                return remaining < TimeSpan.Zero
+                           ? TimeSpan.Zero
+                           : remaining;
+            }
+        }
 
         public TimeSpan ElapsedDuration => Clock.Now() - StartTime;
 
         public TimeSpan TotalDuration { get; }
 
-        public bool IsExceeded => RemainingDuration < TimeSpan.Zero;
+        public bool IsExceeded => RemainingDuration <= TimeSpan.Zero;
 
         public IReadOnlyCollection<TimeBudgetEntry> Entries => entries.OrderBy(e => e.ElapsedDuration).ToArray();
 
@@ -56,6 +81,6 @@ namespace Clockwise
             }
         }
 
-        public static TimeBudget Unlimited() => new TimeBudget(DateTimeOffset.MaxValue - Clockwise.Clock.Now());
+        public static TimeBudget Unlimited() => new TimeBudget(true);
     }
 }

@@ -4,7 +4,7 @@ namespace Clockwise
 {
     public class TimeBudgetEntry
     {
-        private TimeSpan remainingDuration;
+        private readonly TimeBudget budget;
 
         internal TimeBudgetEntry(
             string name,
@@ -15,9 +15,10 @@ namespace Clockwise
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(name));
             }
 
+            this.budget = budget;
+
             Name = name;
             ElapsedDuration = budget.ElapsedDuration;
-            remainingDuration = budget.RemainingDuration;
             BudgetWasExceeded = budget.IsExceeded;
         }
 
@@ -33,9 +34,10 @@ namespace Clockwise
                              ? "❌"
                              : "✔";
 
-            var exceededMessage = BudgetWasExceeded
-                                      ? $" (budget exceeded by {Math.Abs(remainingDuration.TotalSeconds)} seconds)"
-                                      : string.Empty;
+            var exceededMessage =
+                BudgetWasExceeded
+                    ? $" (budget exceeded by {Math.Abs((ElapsedDuration - budget.TotalDuration).TotalSeconds)} seconds)"
+                    : string.Empty;
 
             return $"{symbol} {Name} @ {ElapsedDuration.TotalSeconds} seconds{exceededMessage}";
         }
