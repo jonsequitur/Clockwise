@@ -19,6 +19,9 @@ namespace Clockwise
         {
             this.createdBy = createdBy;
             this.now = now ?? DateTimeOffset.UtcNow;
+
+            logger.Trace("Starting at {now}", now);
+
             Clock.Current = this;
         }
 
@@ -32,11 +35,7 @@ namespace Clockwise
                 throw new InvalidOperationException("A virtual clock cannot be started while another is still active in the current context.");
             }
 
-            var virtualClock = new VirtualClock(now);
-
-            logger.Trace("Starting at {now}", now);
-
-            return virtualClock;
+            return new VirtualClock(now);
         }
 
         public DateTimeOffset Now() => now;
