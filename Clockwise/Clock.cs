@@ -30,13 +30,23 @@ namespace Clockwise
         public static void Reset() =>
             Context().Clock = new RealtimeClock();
 
-        public static CancellationToken CreateCancellationToken(
+        internal static CancellationToken CreateCancellationToken(
             this IClock clock,
             TimeSpan cancelAfter)
         {
             var cancellationTokenSource = new CancellationTokenSource();
 
-            clock.Schedule(c => cancellationTokenSource.Cancel(), cancelAfter);
+            return cancellationTokenSource.CancelAfter(
+                cancelAfter,
+                clock);
+        }
+
+        internal static CancellationToken CancelAfter(
+            this CancellationTokenSource cancellationTokenSource,
+            TimeSpan delay,
+            IClock clock)
+        {
+            clock.Schedule(c => cancellationTokenSource.Cancel(), delay);
 
             return cancellationTokenSource.Token;
         }
