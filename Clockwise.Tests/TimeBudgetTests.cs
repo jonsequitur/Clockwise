@@ -204,5 +204,18 @@ namespace Clockwise.Tests
             budget.RecordEntry("one");
             budget.Entries.Last().BudgetWasExceeded.Should().BeFalse();
         }
+
+        [Fact]
+        public void TimeBudget_allows_cancellation()
+        {
+            using (VirtualClock.Start())
+            {
+                var budget = new TimeBudget(30.Seconds());
+
+                budget.Cancel();
+
+                budget.IsExceeded.Should().BeTrue();
+            }
+        }
     }
 }
