@@ -24,7 +24,7 @@ namespace Clockwise
 
         public string Name { get; }
 
-        internal TimeSpan ElapsedDuration { get; }
+        public TimeSpan ElapsedDuration { get; }
 
         public bool BudgetWasExceeded { get; }
 
