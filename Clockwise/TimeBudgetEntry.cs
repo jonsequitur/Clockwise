@@ -34,10 +34,16 @@ namespace Clockwise
                              ? "❌"
                              : "✔";
 
-            var exceededMessage =
-                BudgetWasExceeded
-                    ? $" (budget exceeded by {Math.Abs((ElapsedDuration - budget.TotalDuration).TotalSeconds)} seconds)"
-                    : string.Empty;
+            string exceededMessage;
+            if (BudgetWasExceeded)
+            {
+                var exceededBy = Math.Abs((ElapsedDuration - budget.TotalDuration).TotalSeconds);
+                exceededMessage = $" (budget exceeded by {exceededBy} seconds)";
+            }
+            else
+            {
+                exceededMessage = string.Empty;
+            }
 
             return $"{symbol} {Name} @ {ElapsedDuration.TotalSeconds} seconds{exceededMessage}";
         }
