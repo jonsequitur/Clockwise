@@ -10,7 +10,7 @@ namespace Clockwise
     public class TimeBudget
     {
         private readonly ConcurrentBag<TimeBudgetEntry> entries = new ConcurrentBag<TimeBudgetEntry>();
-        private CancellationTokenSource cancellationTokenSource;
+        private readonly CancellationTokenSource cancellationTokenSource;
 
         public TimeBudget(TimeSpan duration, IClock clock = null) : this(false, duration, clock)
         {
@@ -51,7 +51,14 @@ namespace Clockwise
 
         internal IClock Clock { get; }
 
-        public DateTimeOffset StartTime { get; }
+        public TimeSpan ElapsedDuration => Clock.Now() - StartTime;
+
+        public bool IsExceeded => RemainingDuration <= TimeSpan.Zero ||
+                                  cancellationTokenSource.IsCancellationRequested;
+
+        public CancellationToken CancellationToken { get; }
+
+        public IReadOnlyCollection<TimeBudgetEntry> Entries => entries.OrderBy(e => e.ElapsedDuration).ToArray();
 
         public TimeSpan RemainingDuration
         {
@@ -65,16 +72,12 @@ namespace Clockwise
             }
         }
 
-        public TimeSpan ElapsedDuration => Clock.Now() - StartTime;
+        public DateTimeOffset StartTime { get; }
 
         public TimeSpan TotalDuration { get; }
 
-        public bool IsExceeded => RemainingDuration <= TimeSpan.Zero ||
-                                  cancellationTokenSource.IsCancellationRequested;
-
-        public IReadOnlyCollection<TimeBudgetEntry> Entries => entries.OrderBy(e => e.ElapsedDuration).ToArray();
-
-        public CancellationToken CancellationToken { get; }
+        public void Cancel() =>
+            cancellationTokenSource.Cancel();
 
         public void RecordEntry([CallerMemberName] string name = null) =>
             entries.Add(new TimeBudgetEntry(name, this));
@@ -90,8 +93,5 @@ namespace Clockwise
         }
 
         public static TimeBudget Unlimited() => new TimeBudget(true);
-
-        public void Cancel() =>
-            cancellationTokenSource.Cancel();
     }
 }
