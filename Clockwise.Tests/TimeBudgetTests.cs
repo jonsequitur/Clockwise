@@ -238,5 +238,27 @@ namespace Clockwise.Tests
                       .Be($"TimeBudget: 5 seconds{NewLine}  ✔ one @ 1 seconds{NewLine}  ❌ two @ 11 seconds (budget exceeded by 6 seconds)");
             }
         }
+
+        [Fact]
+        public async Task TimeBudget_ToString_rounds_durations_for_readability()
+        {
+            using (var clock = VirtualClock.Start())
+            {
+                var budget = new TimeBudget(5.Seconds(), clock);
+                
+                await clock.AdvanceBy(TimeSpan.FromMilliseconds(500.01));
+
+                budget.RecordEntry("one");
+
+                await clock.AdvanceBy(10.Seconds());
+                await clock.AdvanceBy(1.Seconds().Subtract(TimeSpan.FromMilliseconds(.123)));
+
+                budget.RecordEntry("two");
+
+                budget.ToString()
+                      .Should()
+                      .Be($"TimeBudget: 5 seconds{NewLine}  ✔ one @ 0.5 seconds{NewLine}  ❌ two @ 11.5 seconds (budget exceeded by 6.5 seconds)");
+            }
+        }
     }
 }

@@ -10,7 +10,6 @@ namespace Clockwise
 {
     public class TimeBudget
     {
-        private readonly bool unlimited;
         private readonly ConcurrentBag<TimeBudgetEntry> entries = new ConcurrentBag<TimeBudgetEntry>();
         private readonly CancellationTokenSource cancellationTokenSource;
 
@@ -23,7 +22,7 @@ namespace Clockwise
             TimeSpan? duration = null,
             IClock clock = null)
         {
-            this.unlimited = unlimited;
+            IsUnlimited = unlimited;
             Clock = clock ?? Clockwise.Clock.Current;
 
             StartTime = Clock.Now();
@@ -58,6 +57,8 @@ namespace Clockwise
 
         public bool IsExceeded => RemainingDuration <= TimeSpan.Zero ||
                                   cancellationTokenSource.IsCancellationRequested;
+
+        public bool IsUnlimited { get; }
 
         public CancellationToken CancellationToken { get; }
 
@@ -104,7 +105,7 @@ namespace Clockwise
 
         public override string ToString()
         {
-            var durationString = unlimited
+            var durationString = IsUnlimited
                                      ? "unlimited"
                                      : $"{TotalDuration.TotalSeconds} seconds";
 
