@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using static System.Environment;
 
 namespace Clockwise
 {
@@ -10,16 +9,7 @@ namespace Clockwise
         {
         }
 
-        private static string BuildMessage(TimeBudget budget)
-        {
-            var now = budget.Clock.Now();
-
-            var ws =
-                budget.Entries.Any()
-                    ? $"{NewLine}  {string.Join($"{NewLine}  ", budget.Entries.OrderBy(w => w.ElapsedDuration).Select(c => c.ToString()))}"
-                    : "";
-
-            return $"Time budget of {budget.TotalDuration.TotalSeconds} seconds exceeded at {now}{ws}";
-        }
+        private static string BuildMessage(TimeBudget budget) =>
+            $"Time budget of {budget.TotalDuration.TotalSeconds} seconds exceeded at {budget.Clock.Now()}{budget.EntriesDescription}";
     }
 }

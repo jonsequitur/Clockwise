@@ -217,5 +217,26 @@ namespace Clockwise.Tests
                 budget.IsExceeded.Should().BeTrue();
             }
         }
+
+        [Fact]
+        public async Task TimeBudget_ToString_describes_entries()
+        {
+            using (var clock = VirtualClock.Start())
+            {
+                var budget = new TimeBudget(5.Seconds(), clock);
+
+                await clock.AdvanceBy(1.Seconds());
+
+                budget.RecordEntry("one");
+
+                await clock.AdvanceBy(10.Seconds());
+
+                budget.RecordEntry("two");
+
+                budget.ToString()
+                      .Should()
+                      .Be($"TimeBudget: 5 seconds{NewLine}  ✔ one @ 1 seconds{NewLine}  ❌ two @ 11 seconds (budget exceeded by 6 seconds)");
+            }
+        }
     }
 }

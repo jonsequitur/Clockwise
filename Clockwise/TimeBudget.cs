@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using static System.Environment;
 
 namespace Clockwise
 {
     public class TimeBudget
     {
+        private readonly bool unlimited;
         private readonly ConcurrentBag<TimeBudgetEntry> entries = new ConcurrentBag<TimeBudgetEntry>();
         private readonly CancellationTokenSource cancellationTokenSource;
 
@@ -21,6 +23,7 @@ namespace Clockwise
             TimeSpan? duration = null,
             IClock clock = null)
         {
+            this.unlimited = unlimited;
             Clock = clock ?? Clockwise.Clock.Current;
 
             StartTime = Clock.Now();
@@ -93,5 +96,19 @@ namespace Clockwise
         }
 
         public static TimeBudget Unlimited() => new TimeBudget(true);
+
+        internal string EntriesDescription =>
+            Entries.Any()
+                ? $"{NewLine}  {string.Join($"{NewLine}  ", Entries.OrderBy(w => w.ElapsedDuration).Select(c => c.ToString()))}"
+                : "";
+
+        public override string ToString()
+        {
+            var durationString = unlimited
+                                     ? "unlimited"
+                                     : $"{TotalDuration.TotalSeconds} seconds";
+
+            return $"{nameof(TimeBudget)}: {durationString}{EntriesDescription}";
+        }
     }
 }
