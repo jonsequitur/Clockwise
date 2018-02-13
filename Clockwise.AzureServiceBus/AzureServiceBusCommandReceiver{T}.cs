@@ -67,9 +67,7 @@ namespace Clockwise.AzureServiceBus
 
         private static async Task HandleError(ExceptionReceivedEventArgs args)
         {
-            Log.Warning("Exception (action: {action})",
-                        args.Exception,
-                        args.ExceptionReceivedContext.Action);
+            Log.Warning(args.Exception);
 
             await Task.Yield();
         }
