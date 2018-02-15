@@ -3,11 +3,11 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public static class TimeBudgetExtensions
+    public static class BudgetExtensions
     {
         public static async Task CancelIfExceeds(
             this Task task,
-            TimeBudget budget,
+            Budget budget,
             Action ifCancelled = null)
         {
             if (task == null)
@@ -25,7 +25,7 @@ namespace Clockwise
                                    {
                                        if (ifCancelled == null)
                                        {
-                                           throw new TimeBudgetExceededException(budget);
+                                           throw new BudgetExceededException(budget);
                                        }
                                        else
                                        {
@@ -36,7 +36,7 @@ namespace Clockwise
 
         public static async Task<T> CancelIfExceeds<T>(
             this Task<T> task,
-            TimeBudget budget,
+            Budget budget,
             Func<T> ifCancelled = null)
         {
             if (task == null)
@@ -52,7 +52,7 @@ namespace Clockwise
             return await task.CancelAfter(
                        budget.CancellationToken,
                        ifCancelled: () => ifCancelled == null
-                                              ? throw new TimeBudgetExceededException(budget)
+                                              ? throw new BudgetExceededException(budget)
                                               : ifCancelled());
         }
     }

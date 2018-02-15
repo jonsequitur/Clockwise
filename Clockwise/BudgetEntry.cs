@@ -2,13 +2,13 @@
 
 namespace Clockwise
 {
-    public class TimeBudgetEntry
+    public class BudgetEntry
     {
-        private readonly TimeBudget budget;
+        private readonly Budget budget;
 
-        internal TimeBudgetEntry(
+        internal BudgetEntry(
             string name,
-            TimeBudget budget)
+            Budget budget)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -34,18 +34,21 @@ namespace Clockwise
                              ? "❌"
                              : "✔";
 
-            string exceededMessage;
+            string exceededMessage = null;
+
             if (BudgetWasExceeded)
             {
-                var exceededBy = Math.Abs((ElapsedDuration - budget.TotalDuration).TotalSeconds);
-                exceededMessage = $" (budget exceeded by {exceededBy} seconds)";
+                if (budget is TimeBudget timeBudget)
+                {
+                    exceededMessage = $" (budget {budget.DurationDescription} exceeded by {Math.Abs((ElapsedDuration - timeBudget.TotalDuration).TotalSeconds):F2} seconds.)";
+                }
             }
             else
             {
                 exceededMessage = string.Empty;
             }
 
-            return $"{symbol} {Name} @ {ElapsedDuration.TotalSeconds} seconds{exceededMessage}";
+            return $"{symbol} {Name} @ {ElapsedDuration.TotalSeconds:F2} seconds{exceededMessage}";
         }
     }
 }
