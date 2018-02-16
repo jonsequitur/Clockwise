@@ -27,8 +27,10 @@ namespace Clockwise.Tests
         public void Dispose() => disposables.Dispose();
 
         [Fact]
-        public void CanceIfExceeds_throws_if_task_time_exceeds_budget()
+        public void CancelIfExceeds_throws_if_task_time_exceeds_budget()
         {
+            clock.Schedule(c => {  }, 500.Milliseconds());
+
             var budget = new TimeBudget(1.Seconds(), clock);
 
             Func<Task> timeout = () => clock.Wait(10.Seconds())
@@ -53,7 +55,7 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public void CanceIfExceeds_T_throws_if_task_time_exceeds_budget()
+        public void CancelIfExceeds_T_throws_if_task_time_exceeds_budget()
         {
             var budget = new TimeBudget(4.Seconds(), clock);
 
@@ -68,7 +70,7 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task CanceIfExceeds_T_returns_the_expected_value_if_task_time_does_not_exceed_budget()
+        public async Task CancelIfExceeds_T_returns_the_expected_value_if_task_time_does_not_exceed_budget()
         {
             var budget = new TimeBudget(1.Seconds(), clock);
 
