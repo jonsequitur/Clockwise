@@ -8,7 +8,15 @@ namespace Clockwise
         {
         }
 
-        private static string BuildMessage(Budget budget) =>
-            $"Budget {budget.DurationDescription} exceeded.".Replace("  ", " ") + $"{budget.EntriesDescription}";
+        private static string BuildMessage(Budget budget)
+        {
+            string durationDescription = null;
+            if (budget is TimeBudget timeBudget)
+            {
+                durationDescription = $"{timeBudget.DurationDescription} ";
+            }
+
+            return $"Budget {durationDescription}exceeded.{budget.EntriesDescription}";
+        }
     }
 }

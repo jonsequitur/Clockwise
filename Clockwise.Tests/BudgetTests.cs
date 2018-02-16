@@ -9,7 +9,7 @@ using static System.Environment;
 
 namespace Clockwise.Tests
 {
-    public class CancellationTokenBudgetTests : IDisposable
+    public class BudgetTests : IDisposable
     {
         protected void StartClock(DateTimeOffset? now = null) => VirtualClock.Start(now);
 
@@ -26,11 +26,11 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task CancellationTokenBudget_throws_an_informative_exception_after_it_is_cancelled()
+        public async Task Budget_throws_an_informative_exception_after_it_is_cancelled()
         {
             StartClock();
 
-            var budget = new CancellationTokenBudget();
+            var budget = new Budget();
             
             await Clock.Current.Wait(1.Seconds());
 
@@ -52,11 +52,11 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task CancellationTokenBudget_does_not_expire_due_to_the_passage_of_time()
+        public async Task Budget_does_not_expire_due_to_the_passage_of_time()
         {
             using (VirtualClock.Start())
             {
-                var budget = new CancellationTokenBudget();
+                var budget = new Budget();
 
                 await Clock.Current.Wait(1.Minutes());
 
@@ -66,9 +66,9 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public void CancellationTokenBudget_works_with_realtime_clock()
+        public void Budget_works_with_realtime_clock()
         {
-            var budget = new CancellationTokenBudget();
+            var budget = new Budget();
 
             budget.IsExceeded
                   .Should()
@@ -85,11 +85,11 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public void CancellationTokenBudget_ISExceeded_is_based_on_source_token_cancellation_state()
+        public void Budget_ISExceeded_is_based_on_source_token_cancellation_state()
         {
             var cts = new CancellationTokenSource();
 
-            var budget = new CancellationTokenBudget(cts.Token);
+            var budget = new Budget(cts.Token);
 
             budget.IsExceeded.Should().BeFalse();
 

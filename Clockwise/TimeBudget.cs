@@ -6,7 +6,7 @@ namespace Clockwise
     {
         public TimeBudget(
             TimeSpan duration,
-            IClock clock = null) : base(clock)
+            IClock clock = null) : base(clock: clock)
         {
             if (duration == null ||
                 duration <= TimeSpan.Zero)
@@ -21,7 +21,7 @@ namespace Clockwise
                 Clock);
         }
 
-        protected internal override string DurationDescription =>
+        protected internal string DurationDescription =>
             $"of {TotalDuration.TotalSeconds} seconds";
 
         public TimeSpan RemainingDuration

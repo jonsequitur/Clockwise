@@ -7,13 +7,13 @@ using System.Threading;
 
 namespace Clockwise
 {
-    public abstract class Budget
+    public class Budget
     {
         protected readonly ConcurrentBag<BudgetEntry> entries = new ConcurrentBag<BudgetEntry>();
 
-        protected Budget(
-            IClock clock = null,
-            CancellationToken? cancellationToken = null)
+        public Budget(
+            CancellationToken? cancellationToken = null,
+            IClock clock = null)
         {
             CancellationTokenSource = cancellationToken == null
                                           ? new CancellationTokenSource()
@@ -24,27 +24,25 @@ namespace Clockwise
             StartTime = Clock.Now();
         }
 
+        public CancellationToken CancellationToken => CancellationTokenSource.Token;
+
+        protected CancellationTokenSource CancellationTokenSource { get; }
+
         internal IClock Clock { get; }
 
         public TimeSpan ElapsedDuration => Clock.Now() - StartTime;
-
-        public bool IsExceeded =>
-            CancellationTokenSource.IsCancellationRequested;
-
-        public CancellationToken CancellationToken => CancellationTokenSource.Token;
-
-        public IReadOnlyCollection<BudgetEntry> Entries => entries.OrderBy(e => e.ElapsedDuration).ToArray();
-
-        public DateTimeOffset StartTime { get; }
 
         internal string EntriesDescription =>
             Entries.Any()
                 ? $"{Environment.NewLine}  {string.Join($"{Environment.NewLine}  ", Entries.OrderBy(w => w.ElapsedDuration).Select(c => c.ToString()))}"
                 : "";
 
-        protected CancellationTokenSource CancellationTokenSource { get; }
+        public bool IsExceeded =>
+            CancellationTokenSource.IsCancellationRequested;
 
-        protected internal abstract string DurationDescription { get; }
+        public IReadOnlyCollection<BudgetEntry> Entries => entries.OrderBy(e => e.ElapsedDuration).ToArray();
+
+        public DateTimeOffset StartTime { get; }
 
         public void Cancel() => CancellationTokenSource.Cancel();
 
