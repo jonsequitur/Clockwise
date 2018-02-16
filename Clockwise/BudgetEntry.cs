@@ -40,7 +40,7 @@ namespace Clockwise
             {
                 if (budget is TimeBudget timeBudget)
                 {
-                    exceededMessage = $" (budget {budget.DurationDescription} exceeded by {Math.Abs((ElapsedDuration - timeBudget.TotalDuration).TotalSeconds):F2} seconds.)";
+                    exceededMessage = $" (budget {timeBudget.DurationDescription} exceeded by {Math.Abs((ElapsedDuration - timeBudget.TotalDuration).TotalSeconds):F2} seconds.)";
                 }
             }
             else
