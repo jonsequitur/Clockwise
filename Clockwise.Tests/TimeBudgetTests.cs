@@ -1,41 +1,41 @@
 ﻿using System;
 using System.Globalization;
+using FluentAssertions;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Xunit;
 using static System.Environment;
 
 namespace Clockwise.Tests
 {
-    public class TimeBudgetTests
+    public class TimeBudgetTests : IDisposable
     {
+        protected void StartClock(DateTimeOffset? now = null) => VirtualClock.Start(now);
+
+        public void Dispose() => Clock.Reset();
+
         [Fact]
         public void When_the_budget_is_created_then_the_start_time_is_captured()
         {
-            var startTime = DateTimeOffset.Parse(
-                "2017-01-01 12:00am +00:00",
-                CultureInfo.InvariantCulture);
+            StartClock(DateTimeOffset.Parse(
+                           "2017-01-01 12:00am +00:00",
+                           CultureInfo.InvariantCulture));
 
-            using (var clock = VirtualClock.Start(startTime))
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
+            var budget = new TimeBudget(5.Seconds());
 
-                budget.StartTime.Should().Be(clock.Now());
-            }
+            budget.StartTime.Should().Be(Clock.Now());
         }
 
         [Fact]
         public async Task The_remaining_duration_can_be_checked()
         {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
+            StartClock();
 
-                await clock.AdvanceBy(3.Seconds());
+            var budget = new TimeBudget(5.Seconds());
 
-                budget.RemainingDuration.Should().Be(2.Seconds());
-            }
+            await Clock.Current.Wait(3.Seconds());
+
+            budget.RemainingDuration.Should().BeCloseTo(2.Seconds());
         }
 
         [Fact]
@@ -45,20 +45,19 @@ namespace Clockwise.Tests
                 "2017-01-01 12:00am +00:00",
                 CultureInfo.InvariantCulture);
 
-            using (var clock = VirtualClock.Start(startTime))
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
+            StartClock(startTime);
 
-                await clock.AdvanceBy(5.Minutes());
+            var budget = new TimeBudget(5.Seconds());
 
-                budget.StartTime.Should().Be(startTime);
-            }
+            await Clock.Current.Wait(5.Minutes());
+
+            budget.StartTime.Should().Be(startTime);
         }
 
         [Fact]
         public void TimeBudget_cannot_be_created_with_a_timespan_of_zero()
         {
-            Action action = () => new TimeBudget(TimeSpan.Zero, Clock.Current);
+            Action action = () => new TimeBudget(TimeSpan.Zero);
 
             action.ShouldThrow<ArgumentException>();
         }
@@ -66,199 +65,180 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_IsExceeded_returnes_true_after_budget_duration_has_passed()
         {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
+            StartClock();
 
-                await clock.AdvanceBy(6.Seconds());
+            var budget = new TimeBudget(5.Seconds());
 
-                budget.IsExceeded.Should().BeTrue();
-            }
+            await Clock.Current.Wait(6.Seconds());
+
+            budget.IsExceeded.Should().BeTrue();
         }
 
         [Fact]
         public async Task TimeBudget_IsExceeded_returnes_false_before_budget_duration_has_passed()
         {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
+            StartClock();
 
-                await clock.AdvanceBy(2.Seconds());
+            var budget = new TimeBudget(5.Seconds());
 
-                budget.IsExceeded.Should().BeFalse();
-            }
+            await Clock.Current.Wait(2.Seconds());
+
+            budget.IsExceeded.Should().BeFalse();
         }
 
         [Fact]
-        public async Task When_TimeBudhget_is_exceeded_then_RemainingDuration_is_zero()
+        public async Task When_TimeBudget_is_exceeded_then_RemainingDuration_is_zero()
         {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
+            StartClock();
 
-                await clock.AdvanceBy(20.Seconds());
+            var budget = new TimeBudget(5.Seconds());
 
-                budget.RemainingDuration.Should().Be(TimeSpan.Zero);
-            }
+            await Clock.Current.Wait(20.Seconds());
+
+            budget.RemainingDuration.Should().Be(TimeSpan.Zero);
         }
 
         [Fact]
-        public async Task TimeBudget_can_throw_if_no_time_is_left()
+        public async Task TimeBudget_throws_an_informative_exception_if_no_time_is_left()
         {
-            var startTime = DateTimeOffset.Parse(
-                "2017-01-01 12:00am +00:00",
-                CultureInfo.InvariantCulture);
+            StartClock();
 
-            using (var clock = VirtualClock.Start(startTime))
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
+            var budget = new TimeBudget(5.Seconds());
 
-                await clock.AdvanceBy(1.Seconds());
+            await Clock.Current.Wait(1.Seconds());
 
-                budget.RecordEntry("one");
+            budget.RecordEntry("one");
 
-                await clock.AdvanceBy(10.Seconds());
+            await Clock.Current.Wait(10.Seconds());
 
-                Action action = () => budget.RecordEntryAndThrowIfBudgetExceeded("two");
+            Action action = () => budget.RecordEntryAndThrowIfBudgetExceeded("two");
 
-                action.ShouldThrow<TimeBudgetExceededException>()
-                      .Which
-                      .Message
-                      .Should()
-                      .Be($"Time budget of 5 seconds exceeded at {clock.Now()}{NewLine}" +
-                          $"  ✔ one @ 1 seconds{NewLine}" +
-                          $"  ❌ two @ 11 seconds (budget exceeded by 6 seconds)");
-            }
-        } 
+            action.ShouldThrow<BudgetExceededException>()
+                  .Which
+                  .Message
+                  .Should()
+                  .Be($"Budget of 5 seconds exceeded.{NewLine}" +
+                      $"  ✔ one @ 1.00 seconds{NewLine}" +
+                      $"  ❌ two @ 11.00 seconds (budget of 5 seconds exceeded by 6.00 seconds.)");
+        }
 
         [Fact]
         public async Task TimeBudget_can_be_used_to_mark_down_time_spent_in_an_operation()
         {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = new TimeBudget(15.Seconds(), clock);
+            StartClock();
 
-                await clock.AdvanceBy(5.Seconds());
+            var budget = new TimeBudget(15.Seconds());
 
-                budget.RecordEntry("one");
+            await Clock.Current.Wait(5.Seconds());
 
-                await clock.AdvanceBy(8.Seconds());
+            budget.RecordEntry("one");
 
-                budget.RecordEntry("two");
+            await Clock.Current.Wait(8.Seconds());
 
-                await clock.AdvanceBy(13.Seconds());
+            budget.RecordEntry("two");
 
-                budget.RecordEntry("three");
+            await Clock.Current.Wait(13.Seconds());
 
-                budget.Entries
-                      .Select(e => e.ToString())
-                      .Should()
-                      .BeEquivalentTo(
-                          "✔ one @ 5 seconds",
-                          "✔ two @ 13 seconds",
-                          "❌ three @ 26 seconds (budget exceeded by 11 seconds)");
-            }
+            budget.RecordEntry("three");
+
+            budget.Entries
+                  .Select(e => e.ToString())
+                  .Should()
+                  .BeEquivalentTo(
+                      "✔ one @ 5.00 seconds",
+                      "✔ two @ 13.00 seconds",
+                      "❌ three @ 26.00 seconds (budget of 15 seconds exceeded by 11.00 seconds.)");
         }
 
         [Fact]
         public async Task TimeBudget_exposes_a_CancellationToken_that_is_cancelled_when_the_budget_is_exceeded()
         {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = new TimeBudget(10.Seconds(), clock);
+            StartClock();
 
-                var token = budget.CancellationToken;
+            var budget = new TimeBudget(10.Seconds());
 
-                await clock.AdvanceBy(5.Seconds());
+            var token = budget.CancellationToken;
 
-                token.IsCancellationRequested.Should().BeFalse();
+            await Clock.Current.Wait(5.Seconds());
 
-                await clock.AdvanceBy(5.Seconds());
+            token.IsCancellationRequested.Should().BeFalse();
 
-                token.IsCancellationRequested.Should().BeTrue();
-            }
-        }
+            await Clock.Current.Wait(5.Seconds());
 
-        [Fact]
-        public async Task TimeBudget_Unlimited_does_not_expire()
-        {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = TimeBudget.Unlimited();
-
-                await clock.AdvanceBy(30.Days());
-
-                budget.IsExceeded.Should().BeFalse();
-                budget.ElapsedDuration.Should().Be(30.Days());
-            }
-        }
-
-        [Fact]
-        public void TimeBudget_Unlimited_works_with_realtime_clock()
-        {
-            var budget = TimeBudget.Unlimited();
-
-            budget.RemainingDuration.Should().BeGreaterThan(10000.Days());
-            budget.IsExceeded.Should().BeFalse();
-            budget.ElapsedDuration.Should().BeLessOrEqualTo(1.Seconds());
-            budget.RecordEntry("one");
-            budget.Entries.Last().BudgetWasExceeded.Should().BeFalse();
+            token.IsCancellationRequested.Should().BeTrue();
         }
 
         [Fact]
         public void TimeBudget_allows_cancellation()
         {
-            using (VirtualClock.Start())
-            {
-                var budget = new TimeBudget(30.Seconds());
+            StartClock();
 
-                budget.Cancel();
+            var budget = new TimeBudget(30.Seconds());
 
-                budget.IsExceeded.Should().BeTrue();
-            }
+            budget.Cancel();
+
+            budget.IsExceeded.Should().BeTrue();
         }
 
         [Fact]
         public async Task TimeBudget_ToString_describes_entries()
         {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
+            StartClock();
 
-                await clock.AdvanceBy(1.Seconds());
+            var budget = new TimeBudget(5.Seconds());
 
-                budget.RecordEntry("one");
+            await Clock.Current.Wait(1.Seconds());
 
-                await clock.AdvanceBy(10.Seconds());
+            budget.RecordEntry("one");
 
-                budget.RecordEntry("two");
+            await Clock.Current.Wait(10.Seconds());
 
-                budget.ToString()
-                      .Should()
-                      .Be($"TimeBudget: 5 seconds{NewLine}  ✔ one @ 1 seconds{NewLine}  ❌ two @ 11 seconds (budget exceeded by 6 seconds)");
-            }
+            budget.RecordEntry("two");
+
+            budget.ToString()
+                  .Should()
+                  .Be($"TimeBudget: 5 seconds{NewLine}  ✔ one @ 1.00 seconds{NewLine}  ❌ two @ 11.00 seconds (budget of 5 seconds exceeded by 6.00 seconds.)");
         }
 
         [Fact]
-        public async Task TimeBudget_ToString_rounds_durations_for_readability()
+        public async Task TimeBudget_ToString_truncates_durations_for_readability()
         {
-            using (var clock = VirtualClock.Start())
-            {
-                var budget = new TimeBudget(5.Seconds(), clock);
-                
-                await clock.AdvanceBy(TimeSpan.FromMilliseconds(500.01));
+            StartClock();
 
-                budget.RecordEntry("one");
+            var budget = new TimeBudget(5.Seconds());
 
-                await clock.AdvanceBy(10.Seconds());
-                await clock.AdvanceBy(1.Seconds().Subtract(TimeSpan.FromMilliseconds(.123)));
+            await Clock.Current.Wait(TimeSpan.FromMilliseconds(1010.235));
 
-                budget.RecordEntry("two");
+            budget.RecordEntry("one");
 
-                budget.ToString()
-                      .Should()
-                      .Be($"TimeBudget: 5 seconds{NewLine}  ✔ one @ 0.5 seconds{NewLine}  ❌ two @ 11.5 seconds (budget exceeded by 6.5 seconds)");
-            }
+            await Clock.Current.Wait(10.Seconds());
+            await Clock.Current.Wait(TimeSpan.FromMilliseconds(1100.052));
+
+            budget.RecordEntry("two");
+
+            budget.ToString()
+                  .Should()
+                  .Be($"TimeBudget: 5 seconds{NewLine}  ✔ one @ 1.01 seconds{NewLine}  ❌ two @ 12.11 seconds (budget of 5 seconds exceeded by 7.11 seconds.)");
+        }
+
+        [Fact]
+        public async Task TimeBudget_ToString_does_not_change_when_time_passes_but_no_new_entries_are_added()
+        {
+            StartClock();
+
+            var budget = new TimeBudget(2.Seconds());
+
+            await Clock.Current.Wait(1.Seconds());
+
+            budget.RecordEntry("one");
+
+            var stringAt1Second = budget.ToString();
+
+            await Clock.Current.Wait(2.Seconds());
+
+            var stringAt1Minute = budget.ToString();
+
+            stringAt1Minute.Should().Be(stringAt1Second);
         }
     }
 }

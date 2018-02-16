@@ -7,13 +7,13 @@ using Xunit.Abstractions;
 
 namespace Clockwise.Tests
 {
-    public abstract class TimeBudgetExtensionsTests : IDisposable
+    public abstract class BudgetExtensionsTests : IDisposable
     {
         private readonly IClock clock;
 
         private readonly CompositeDisposable disposables=new CompositeDisposable();
 
-        protected TimeBudgetExtensionsTests(IClock clock, ITestOutputHelper output)
+        protected BudgetExtensionsTests(IClock clock, ITestOutputHelper output)
         {
             this.clock = clock;
             disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
@@ -29,12 +29,12 @@ namespace Clockwise.Tests
         [Fact]
         public void CanceIfExceeds_throws_if_task_time_exceeds_budget()
         {
-            var budget = new TimeBudget(2.Seconds(), clock);
+            var budget = new TimeBudget(1.Seconds(), clock);
 
-            Func<Task> timeout = () => clock.Wait(4.Seconds())
+            Func<Task> timeout = () => clock.Wait(10.Seconds())
                                             .CancelIfExceeds(budget);
 
-            timeout.ShouldThrow<TimeBudgetExceededException>();
+            timeout.ShouldThrow<BudgetExceededException>();
         }
 
         [Fact]
@@ -64,7 +64,7 @@ namespace Clockwise.Tests
                 return "not cancelled";
             }).CancelIfExceeds(budget);
 
-            timeout.ShouldThrow<TimeBudgetExceededException>();
+            timeout.ShouldThrow<BudgetExceededException>();
         }
 
         [Fact]
