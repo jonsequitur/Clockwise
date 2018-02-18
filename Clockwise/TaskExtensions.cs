@@ -55,5 +55,8 @@ namespace Clockwise
                 }
             }
         }
+
+        internal static void WaitAndUnwrapException(this Task task) => 
+            task?.GetAwaiter().GetResult();
     }
 }

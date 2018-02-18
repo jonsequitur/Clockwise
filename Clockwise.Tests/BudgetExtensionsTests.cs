@@ -11,7 +11,7 @@ namespace Clockwise.Tests
     {
         private readonly IClock clock;
 
-        private readonly CompositeDisposable disposables=new CompositeDisposable();
+        private readonly CompositeDisposable disposables = new CompositeDisposable();
 
         protected BudgetExtensionsTests(IClock clock, ITestOutputHelper output)
         {
