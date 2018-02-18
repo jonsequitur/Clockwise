@@ -20,7 +20,7 @@ namespace Clockwise
             this.createdBy = createdBy;
             this.now = now ?? DateTimeOffset.UtcNow;
 
-            logger.Trace("Starting at {now}", now);
+            logger.Trace("Starting at {now}", this.now);
 
             Clock.Current = this;
         }
