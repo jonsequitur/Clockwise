@@ -214,5 +214,52 @@ namespace Clockwise.Tests
 
             stringAt1Minute.Should().Be(stringAt1Second);
         }
+
+        [Fact]
+        public async Task When_a_time_budget_is_canceled_then_the_remaining_duration_is_zero()
+        {
+            var budget = new TimeBudget(3.Seconds());
+
+            await Clock.Current.Wait(2.Seconds());
+
+            budget.Cancel();
+
+            await Clock.Current.Wait(2.Seconds());
+
+            budget.RemainingDuration.Should().Be(TimeSpan.Zero);
+        }
+
+        [Fact]
+        public async Task When_a_time_budget_is_canceled_before_expiration_then_the_elapsed_duration_at_cancellation_is_captured()
+        {
+            var budget = new TimeBudget(3.Seconds());
+
+            await Clock.Current.Wait(2.Seconds());
+
+            budget.Cancel();
+
+            await Clock.Current.Wait(2.Seconds());
+
+            budget.ElapsedDurationAtCancellation.Should().Be(2.Seconds());
+        }
+
+        [Fact]
+        public async Task Adding_entries_after_cancellation_captures_elapsed_duration_relative_to_budget_start()
+        {
+            var budget = new TimeBudget(3.Seconds());
+
+            await Clock.Current.Wait(2.Seconds());
+
+            budget.Cancel();
+
+            await Clock.Current.Wait(2.Seconds());
+
+            budget.RecordEntry();
+
+            var lastEntry = budget.Entries.Last();
+
+            lastEntry.BudgetWasExceeded.Should().BeTrue();
+            lastEntry.ElapsedDuration.Should().Be(4.Seconds());
+        }
     }
 }
