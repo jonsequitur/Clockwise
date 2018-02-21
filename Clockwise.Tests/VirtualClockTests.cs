@@ -180,7 +180,7 @@ namespace Clockwise.Tests
                 clock.Schedule(c => events.Add((c.Now(), "second")));
                 clock.Schedule(c => events.Add((c.Now(), "third")));
 
-                await clock.AdvanceBy(1.Seconds());
+                await clock.AdvanceBy(1.Ticks());
 
                 events.ShouldBeEquivalentTo(new[]
                 {

@@ -4,6 +4,8 @@ namespace Clockwise
 {
     public class TimeBudget : Budget
     {
+        private  TimeSpan? elapsedDurationAtCancellation;
+
         public TimeBudget(
             TimeSpan duration,
             IClock clock = null) : base(clock: clock)
@@ -19,21 +21,24 @@ namespace Clockwise
             CancellationTokenSource.CancelAfter(
                 TotalDuration,
                 Clock);
+
+            CancellationToken.Register(() => elapsedDurationAtCancellation = TotalDuration -  CalculateRemainingDuration());
         }
 
         protected internal string DurationDescription =>
             $"of {TotalDuration.TotalSeconds} seconds";
 
-        public TimeSpan RemainingDuration
-        {
-            get
-            {
-                var remaining = TotalDuration - ElapsedDuration;
+        public TimeSpan RemainingDuration => CalculateRemainingDuration();
 
-                return remaining < TimeSpan.Zero
-                           ? TimeSpan.Zero
-                           : remaining;
-            }
+        public TimeSpan? ElapsedDurationAtCancellation => elapsedDurationAtCancellation;
+
+        private TimeSpan CalculateRemainingDuration()
+        {
+            var remaining = TotalDuration - ElapsedDuration;
+
+            return remaining < TimeSpan.Zero
+                       ? TimeSpan.Zero
+                       : remaining;
         }
 
         public TimeSpan TotalDuration { get; }
