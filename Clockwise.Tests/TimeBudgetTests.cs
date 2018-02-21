@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using FluentAssertions;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,6 +9,11 @@ namespace Clockwise.Tests
 {
     public class TimeBudgetTests : IDisposable
     {
+        public TimeBudgetTests()
+        {
+            StartClock();
+        }
+
         protected void StartClock(DateTimeOffset? now = null) => VirtualClock.Start(now);
 
         public void Dispose() => Clock.Reset();
@@ -17,10 +21,6 @@ namespace Clockwise.Tests
         [Fact]
         public void When_the_budget_is_created_then_the_start_time_is_captured()
         {
-            StartClock(DateTimeOffset.Parse(
-                           "2017-01-01 12:00am +00:00",
-                           CultureInfo.InvariantCulture));
-
             var budget = new TimeBudget(5.Seconds());
 
             budget.StartTime.Should().Be(Clock.Now());
@@ -29,8 +29,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task The_remaining_duration_can_be_checked()
         {
-            StartClock();
-
             var budget = new TimeBudget(5.Seconds());
 
             await Clock.Current.Wait(3.Seconds());
@@ -41,11 +39,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task When_the_clock_is_advanced_then_start_time_does_not_change()
         {
-            var startTime = DateTimeOffset.Parse(
-                "2017-01-01 12:00am +00:00",
-                CultureInfo.InvariantCulture);
-
-            StartClock(startTime);
+            var startTime = Clock.Now();
 
             var budget = new TimeBudget(5.Seconds());
 
@@ -65,8 +59,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_IsExceeded_returnes_true_after_budget_duration_has_passed()
         {
-            StartClock();
-
             var budget = new TimeBudget(5.Seconds());
 
             await Clock.Current.Wait(6.Seconds());
@@ -77,8 +69,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_IsExceeded_returnes_false_before_budget_duration_has_passed()
         {
-            StartClock();
-
             var budget = new TimeBudget(5.Seconds());
 
             await Clock.Current.Wait(2.Seconds());
@@ -89,8 +79,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task When_TimeBudget_is_exceeded_then_RemainingDuration_is_zero()
         {
-            StartClock();
-
             var budget = new TimeBudget(5.Seconds());
 
             await Clock.Current.Wait(20.Seconds());
@@ -101,8 +89,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_throws_an_informative_exception_if_no_time_is_left()
         {
-            StartClock();
-
             var budget = new TimeBudget(5.Seconds());
 
             await Clock.Current.Wait(1.Seconds());
@@ -125,8 +111,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_can_be_used_to_mark_down_time_spent_in_an_operation()
         {
-            StartClock();
-
             var budget = new TimeBudget(15.Seconds());
 
             await Clock.Current.Wait(5.Seconds());
@@ -153,8 +137,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_exposes_a_CancellationToken_that_is_cancelled_when_the_budget_is_exceeded()
         {
-            StartClock();
-
             var budget = new TimeBudget(10.Seconds());
 
             var token = budget.CancellationToken;
@@ -171,8 +153,6 @@ namespace Clockwise.Tests
         [Fact]
         public void TimeBudget_allows_cancellation()
         {
-            StartClock();
-
             var budget = new TimeBudget(30.Seconds());
 
             budget.Cancel();
@@ -183,8 +163,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_ToString_describes_entries()
         {
-            StartClock();
-
             var budget = new TimeBudget(5.Seconds());
 
             await Clock.Current.Wait(1.Seconds());
@@ -203,8 +181,6 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_ToString_truncates_durations_for_readability()
         {
-            StartClock();
-
             var budget = new TimeBudget(5.Seconds());
 
             await Clock.Current.Wait(TimeSpan.FromMilliseconds(1010.235));
@@ -224,13 +200,11 @@ namespace Clockwise.Tests
         [Fact]
         public async Task TimeBudget_ToString_does_not_change_when_time_passes_but_no_new_entries_are_added()
         {
-            StartClock();
-
             var budget = new TimeBudget(2.Seconds());
 
             await Clock.Current.Wait(1.Seconds());
 
-            budget.RecordEntry("one");
+            budget.RecordEntry();
 
             var stringAt1Second = budget.ToString();
 

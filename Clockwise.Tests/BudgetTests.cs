@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using FluentAssertions;
 using System.Linq;
 using System.Threading;
@@ -11,6 +10,11 @@ namespace Clockwise.Tests
 {
     public class BudgetTests : IDisposable
     {
+        public BudgetTests()
+        {
+            StartClock();
+        }
+
         protected void StartClock(DateTimeOffset? now = null) => VirtualClock.Start(now);
 
         public void Dispose() => Clock.Reset();
@@ -18,8 +22,6 @@ namespace Clockwise.Tests
         [Fact]
         public void When_the_budget_is_created_then_the_start_time_is_captured()
         {
-            StartClock();
-
             var budget = new TimeBudget(5.Seconds());
 
             budget.StartTime.Should().Be(Clock.Now());
@@ -28,10 +30,8 @@ namespace Clockwise.Tests
         [Fact]
         public async Task Budget_throws_an_informative_exception_after_it_is_cancelled()
         {
-            StartClock();
-
             var budget = new Budget();
-            
+
             await Clock.Current.Wait(1.Seconds());
 
             budget.RecordEntry("one");
@@ -54,15 +54,12 @@ namespace Clockwise.Tests
         [Fact]
         public async Task Budget_does_not_expire_due_to_the_passage_of_time()
         {
-            using (VirtualClock.Start())
-            {
-                var budget = new Budget();
+            var budget = new Budget();
 
-                await Clock.Current.Wait(1.Minutes());
+            await Clock.Current.Wait(1.Minutes());
 
-                budget.IsExceeded.Should().BeFalse();
-                budget.ElapsedDuration.Should().Be(1.Minutes());
-            }
+            budget.IsExceeded.Should().BeFalse();
+            budget.ElapsedDuration.Should().Be(1.Minutes());
         }
 
         [Fact]
@@ -85,7 +82,7 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public void Budget_ISExceeded_is_based_on_source_token_cancellation_state()
+        public void Budget_IsExceeded_is_based_on_source_token_cancellation_state()
         {
             var cts = new CancellationTokenSource();
 
