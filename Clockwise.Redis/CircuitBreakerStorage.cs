@@ -2,12 +2,14 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
+using Pocket;
 using StackExchange.Redis;
 
 namespace Clockwise.Redis
 {
     public sealed class CircuitBreakerStorage : ICircuitBreakerStorage
     {
+        private static readonly Logger Log = new Logger("CircuitBreakerStorage");
         private readonly RedisChannel channel;
         private readonly ConnectionMultiplexer connection;
         private readonly IDatabase db;
@@ -49,6 +51,9 @@ namespace Clockwise.Redis
         {
             var desc = new CirtuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
             var json = JsonConvert.SerializeObject(desc, jsonSettings);
+
+
+            Log.Info("Setting circuitbreaker state to {state}", desc);
             db.StringSet(key, json, expiry);
             subscriber.Publish(channel, json, CommandFlags.HighPriority);
         }
@@ -69,6 +74,8 @@ namespace Clockwise.Redis
 
             if (newDescriptor != StateDescriptor)
             {
+                Log.Info("Received circuitbreaker state update to {state}", newDescriptor);
+
                 StateDescriptor = newDescriptor;
                 CircuitBreakerStateChanged ?.Invoke(this, StateDescriptor);
             }
