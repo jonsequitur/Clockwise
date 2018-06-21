@@ -78,8 +78,6 @@ namespace Clockwise.AzureServiceBus.Tests
                 CreateReceiver<T>().Subscribe(
                     CreateHandler(handle))) ;
 
-     
-
         private MessageReceiver CreateMessageReceiver()
         {
             return new MessageReceiver(serviceBusSettings.ConnectionString,

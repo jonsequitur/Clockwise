@@ -160,6 +160,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task When_an_exception_is_thrown_then_the_command_will_be_retried()
         {
+            var failedFirst = false;
             var success = false;
 
             var handler = CreateHandler<string>(cmd =>
@@ -167,6 +168,7 @@ namespace Clockwise.Tests
                 // first try...
                 if (cmd.NumberOfPreviousAttempts == 0)
                 {
+                    failedFirst = true;
                     throw new Exception("drat!");
                 }
 
@@ -186,6 +188,7 @@ namespace Clockwise.Tests
             // second try
             await receiver.Receive(handler);
 
+            failedFirst.Should().BeTrue();
             success.Should().BeTrue();
         }
 
