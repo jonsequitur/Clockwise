@@ -6,7 +6,7 @@ using StackExchange.Redis;
 
 namespace Clockwise.Redis
 {
-    public class CircuitBreakerStorage : ICircuitBreakerStorage
+    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage
     {
         private readonly RedisChannel channel;
         private readonly ConnectionMultiplexer connection;
@@ -73,7 +73,6 @@ namespace Clockwise.Redis
                 CircuitBreakerStateChanged ?.Invoke(this, StateDescriptor);
             }
         }
-
         public void Dispose()
         {
             subscriber.Unsubscribe(channel);

@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Clockwise.Redis.Tests
 {
-    public class CircuitBreakerTests : IDisposable
+    public class CircuitBreakerStorageTests : IDisposable
     {
         [Fact]
         public void SingalingState()
