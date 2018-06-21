@@ -67,6 +67,7 @@ namespace Clockwise.Tests
                 await receiver.Receive(async d =>
                 {
                     received = true;
+                    await Task.Yield();
                     return d.Complete();
                 }, 3.Seconds());
             }
