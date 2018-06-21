@@ -24,7 +24,7 @@ namespace Clockwise.Redis
             jsonSettings.NullValueHandling = NullValueHandling.Ignore;
         }
 
-        public event EventHandler<CirtuitBreakerStateDescriptor> CircuitBreakerStateChanged; 
+        public event EventHandler<CircuitBreakerStateDescriptor> CircuitBreakerStateChanged; 
         public static CircuitBreakerStorage Create<T>(string connectionString, int dbId = -1)
         {
             return new CircuitBreakerStorage(connectionString, dbId, typeof(T));
@@ -45,11 +45,11 @@ namespace Clockwise.Redis
             subscriber.Subscribe(channel, OnStatusChange);
         }
 
-        public CirtuitBreakerStateDescriptor StateDescriptor { get; private set; }
+        public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
 
         public void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
-            var desc = new CirtuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
+            var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
             var json = JsonConvert.SerializeObject(desc, jsonSettings);
 
 
@@ -58,19 +58,19 @@ namespace Clockwise.Redis
             subscriber.Publish(channel, json, CommandFlags.HighPriority);
         }
 
-        private CirtuitBreakerStateDescriptor ReadDescriptor()
+        private CircuitBreakerStateDescriptor ReadDescriptor()
         {
-            var desc = new CirtuitBreakerStateDescriptor(CircuitBreakerState.Closed);
+            var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed);
             var src = db.StringGet(key);
 
-            if (!src.IsNullOrEmpty) desc = JsonConvert.DeserializeObject<CirtuitBreakerStateDescriptor>(src, jsonSettings);
+            if (!src.IsNullOrEmpty) desc = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(src, jsonSettings);
 
             return desc;
         }
 
         private void OnStatusChange(RedisChannel _, RedisValue value)
         {
-            var newDescriptor = JsonConvert.DeserializeObject<CirtuitBreakerStateDescriptor>(value, jsonSettings);
+            var newDescriptor = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(value, jsonSettings);
 
             if (newDescriptor != StateDescriptor)
             {

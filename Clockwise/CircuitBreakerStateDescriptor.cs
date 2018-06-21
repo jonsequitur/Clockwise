@@ -2,9 +2,9 @@
 
 namespace Clockwise
 {
-    public class CirtuitBreakerStateDescriptor
+    public class CircuitBreakerStateDescriptor
     {
-        protected bool Equals(CirtuitBreakerStateDescriptor other)
+        protected bool Equals(CircuitBreakerStateDescriptor other)
         {
             return State == other.State && TimeToLive.Equals(other.TimeToLive) && TimeStamp.Equals(other.TimeStamp);
         }
@@ -13,7 +13,7 @@ namespace Clockwise
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            var other = obj as CirtuitBreakerStateDescriptor;
+            var other = obj as CircuitBreakerStateDescriptor;
             return other != null && Equals(other);
         }
 
@@ -28,12 +28,12 @@ namespace Clockwise
             }
         }
 
-        public static bool operator ==(CirtuitBreakerStateDescriptor left, CirtuitBreakerStateDescriptor right)
+        public static bool operator ==(CircuitBreakerStateDescriptor left, CircuitBreakerStateDescriptor right)
         {
             return Equals(left, right);
         }
 
-        public static bool operator !=(CirtuitBreakerStateDescriptor left, CirtuitBreakerStateDescriptor right)
+        public static bool operator !=(CircuitBreakerStateDescriptor left, CircuitBreakerStateDescriptor right)
         {
             return !Equals(left, right);
         }
@@ -42,7 +42,7 @@ namespace Clockwise
         public TimeSpan? TimeToLive { get; }
         public DateTimeOffset? TimeStamp { get;  }
 
-        public CirtuitBreakerStateDescriptor(CircuitBreakerState state, DateTimeOffset? timeStamp = null, TimeSpan? timeToLive = null)
+        public CircuitBreakerStateDescriptor(CircuitBreakerState state, DateTimeOffset? timeStamp = null, TimeSpan? timeToLive = null)
         {
             State = state;
             TimeToLive = timeToLive;

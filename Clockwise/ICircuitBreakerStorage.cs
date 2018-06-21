@@ -4,8 +4,8 @@ namespace Clockwise
 {
     public interface ICircuitBreakerStorage : IDisposable
     {
-        event EventHandler<CirtuitBreakerStateDescriptor> CircuitBreakerStateChanged;
-        CirtuitBreakerStateDescriptor StateDescriptor { get; }
+        event EventHandler<CircuitBreakerStateDescriptor> CircuitBreakerStateChanged;
+        CircuitBreakerStateDescriptor StateDescriptor { get; }
         void SetState(CircuitBreakerState newState, TimeSpan? expiry = null);
     }
 }
