@@ -20,12 +20,6 @@ namespace Clockwise.Tests
         public ClockwiseSynchronizationContextTests(ITestOutputHelper output)
         {
             disposables.Add(LogEvents.Subscribe(e => output.WriteLine(e.ToLogString())));
-            disposables.Add(LogEvents.Enrich(e =>
-            {
-                e(("thread", CurrentThread.ManagedThreadId as object));
-                e(("SyncCtx", SynchronizationContext.Current));
-            }));
-
             Log.Info("Starting test on thread {id}", CurrentThread.ManagedThreadId);
         }
 
