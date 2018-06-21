@@ -6,7 +6,7 @@ namespace Clockwise
     {
         CircuitBreakerState State { get; }
 
-        CirtuitBreakerStateDescriptor StateDescriptor { get; }
+        CircuitBreakerStateDescriptor StateDescriptor { get; }
         void SetState(CircuitBreakerState newState, TimeSpan? expiry = null);
     }
 
@@ -17,16 +17,17 @@ namespace Clockwise
         public CircuitBraker(ICircuitBreakerStorage storage)
         {
             _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+            StateDescriptor = _storage.StateDescriptor;
             _storage.CircuitBreakerStateChanged += StorageOnCircuitBreakerStateChanged;
         }
 
-        private void StorageOnCircuitBreakerStateChanged(object sender, CirtuitBreakerStateDescriptor e)
+        private void StorageOnCircuitBreakerStateChanged(object sender, CircuitBreakerStateDescriptor e)
         {
             StateDescriptor = e;
         }
 
         public CircuitBreakerState State => StateDescriptor.State;
-        public CirtuitBreakerStateDescriptor StateDescriptor { get; private set; }
+        public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
         public void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
             _storage.SetState(newState, expiry);
