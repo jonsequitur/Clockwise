@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Clockwise.Tests;
 using FluentAssertions;
+using FluentAssertions.Extensions;
 using Microsoft.Azure.ServiceBus;
 using Microsoft.Azure.ServiceBus.Core;
 using Microsoft.Extensions.Configuration;

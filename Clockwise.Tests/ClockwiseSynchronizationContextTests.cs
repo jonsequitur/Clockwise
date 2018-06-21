@@ -105,7 +105,7 @@ namespace Clockwise.Tests
                         }),
                         RunTask(() => ( "four", CurrentThread.ManagedThreadId )));
 
-                doWork.ShouldThrow<DataMisalignedException>();
+                doWork.Should().Throw<DataMisalignedException>();
             }
         }
 
@@ -152,7 +152,7 @@ namespace Clockwise.Tests
                 ran = true;
             }, null);
 
-            post.ShouldThrow<ObjectDisposedException>();
+            post.Should().Throw<ObjectDisposedException>();
 
             ran.Should().BeFalse();
         }

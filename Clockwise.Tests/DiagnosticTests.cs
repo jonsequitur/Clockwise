@@ -3,6 +3,7 @@ using System.Globalization;
 using FluentAssertions;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentAssertions.Extensions;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;

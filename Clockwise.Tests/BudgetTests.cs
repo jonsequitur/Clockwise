@@ -3,6 +3,7 @@ using FluentAssertions;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions.Extensions;
 using Xunit;
 using static System.Environment;
 
@@ -42,7 +43,7 @@ namespace Clockwise.Tests
 
             Action action = () => budget.RecordEntryAndThrowIfBudgetExceeded("two");
 
-            action.ShouldThrow<BudgetExceededException>()
+            action.Should().Throw<BudgetExceededException>()
                   .Which
                   .Message
                   .Should()

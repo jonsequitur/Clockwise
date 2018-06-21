@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using FluentAssertions;
+using FluentAssertions.Extensions;
 using Microsoft.Azure.ServiceBus;
 using Pocket;
 using Xunit;
@@ -39,7 +40,7 @@ namespace Clockwise.AzureServiceBus.Tests
 
             var deserialized = message.ToCommandDelivery<MyMessageClass>();
 
-            deserialized.Command.ShouldBeEquivalentTo(original.Command);
+            deserialized.Command.Should().BeEquivalentTo(original.Command);
         }
 
         [Fact]
@@ -61,7 +62,7 @@ namespace Clockwise.AzureServiceBus.Tests
                     .DueTime
                     .Value
                     .UtcDateTime
-                    .ShouldBeEquivalentTo(
+                    .Should().BeCloseTo(
                         message.SystemProperties
                                .EnqueuedTimeUtc);
                 deserialized

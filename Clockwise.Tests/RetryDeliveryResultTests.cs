@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using FluentAssertions;
 using System.Linq;
+using FluentAssertions.Extensions;
 using Xunit;
 
 namespace Clockwise.Tests
@@ -21,7 +22,7 @@ namespace Clockwise.Tests
 
             retries
                 .Select(a => a.RetryPeriod)
-                .ShouldBeEquivalentTo(new[]
+                .Should().BeEquivalentTo(new[]
                 {
                     1.Minutes(),
                     4.Minutes(),

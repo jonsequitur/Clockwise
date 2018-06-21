@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using FluentAssertions;
+using FluentAssertions.Extensions;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
@@ -36,7 +37,7 @@ namespace Clockwise.Tests
             Func<Task> timeout = () => clock.Wait(10.Seconds())
                                             .CancelIfExceeds(budget);
 
-            timeout.ShouldThrow<BudgetExceededException>();
+            timeout.Should().Throw<BudgetExceededException>();
         }
 
         [Fact]
@@ -66,7 +67,7 @@ namespace Clockwise.Tests
                 return "not cancelled";
             }).CancelIfExceeds(budget);
 
-            timeout.ShouldThrow<BudgetExceededException>();
+            timeout.Should().Throw<BudgetExceededException>();
         }
 
         [Fact]
