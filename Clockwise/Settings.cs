@@ -14,5 +14,7 @@ namespace Clockwise
         public TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromHours(1);
 
         public RetryPolicy RetryPolicy { get; set; } = new RetryPolicy();
+
+        public ICircuitBreaker CircuitBreaker { get; set; }
     }
 }

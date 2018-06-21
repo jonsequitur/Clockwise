@@ -10,13 +10,6 @@ namespace Clockwise
         void SetState(CircuitBreakerState newState, TimeSpan? expiry = null);
     }
 
-    public interface ICircuitBreakerStorage : IDisposable
-    {
-        event EventHandler<CirtuitBreakerStateDescriptor> CircuitBreakerStateChanged;
-        CirtuitBreakerStateDescriptor StateDescriptor { get; }
-        void SetState(CircuitBreakerState newState, TimeSpan? expiry = null);
-    }
-
     public sealed class CircuitBraker : ICircuitBreaker
     {
         private readonly ICircuitBreakerStorage _storage;
