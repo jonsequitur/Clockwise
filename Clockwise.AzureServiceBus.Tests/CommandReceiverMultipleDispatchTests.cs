@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Clockwise.Tests;
 using FluentAssertions;
+using FluentAssertions.Extensions;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;

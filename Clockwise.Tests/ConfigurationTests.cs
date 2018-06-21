@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using System.Threading.Tasks;
+using FluentAssertions.Extensions;
 using Pocket;
 using Xunit;
 

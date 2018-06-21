@@ -25,11 +25,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CSharp" Version="4.4.0" />
-    <PackageReference Include="pocket.disposable" Version="1.0.3">
+    <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
+    <PackageReference Include="pocket.disposable" Version="1.0.4">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Pocket.TypeDiscovery" Version="0.4.0">
+    <PackageReference Include="Pocket.TypeDiscovery" Version="0.4.1">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="PocketContainer" Version="1.6.2-beta">
@@ -41,7 +41,7 @@
     <PackageReference Include="PocketContainer.OpenGenericStrategy" Version="1.1.1">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="pocketlogger" Version="0.2.7">
+    <PackageReference Include="pocketlogger" Version="0.3.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>

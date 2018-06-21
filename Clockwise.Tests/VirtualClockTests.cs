@@ -4,6 +4,7 @@ using System.Globalization;
 using FluentAssertions;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentAssertions.Extensions;
 using Pocket;
 using Xunit;
 using Xunit.Abstractions;
@@ -79,7 +80,7 @@ namespace Clockwise.Tests
             {
                 Func<Task> moveBackwards = () => clock.AdvanceBy(-1.Minutes());
 
-                moveBackwards.ShouldThrow<ArgumentException>()
+                moveBackwards.Should().Throw<ArgumentException>()
                              .Which
                              .Message
                              .Should()
@@ -93,7 +94,7 @@ namespace Clockwise.Tests
             using (var clock = VirtualClock.Start())
             {
                 Func<Task> moveBackwards = () => clock.AdvanceTo(clock.Now().Subtract(1.Minutes()));
-                moveBackwards.ShouldThrow<ArgumentException>()
+                moveBackwards.Should().Throw<ArgumentException>()
                              .Which
                              .Message
                              .Should()
@@ -113,11 +114,11 @@ namespace Clockwise.Tests
 
                 await clock.AdvanceBy(3.Seconds());
 
-                actions.ShouldBeEquivalentTo(new[] { "one" });
+                actions.Should().BeEquivalentTo("one");
 
                 await clock.AdvanceBy(3.Hours());
 
-                actions.ShouldBeEquivalentTo(new[] { "one", "two" });
+                actions.Should().BeEquivalentTo("one", "two");
             }
         }
 
@@ -137,7 +138,7 @@ namespace Clockwise.Tests
                 await clock.AdvanceBy(20.Days());
             }
 
-            events.ShouldBeEquivalentTo(new[]
+            events.Should().BeEquivalentTo(new[]
             {
                 startTime.Add(2.Seconds()),
                 startTime.Add(3.Seconds()),
@@ -182,7 +183,7 @@ namespace Clockwise.Tests
 
                 await clock.AdvanceBy(1.Ticks());
 
-                events.ShouldBeEquivalentTo(new[]
+                events.Should().BeEquivalentTo(new[]
                 {
                     (startTime, "first"),
                     (startTime, "second"),
@@ -218,7 +219,7 @@ namespace Clockwise.Tests
             {
                 Action startAnother = () => VirtualClock.Start();
 
-                startAnother.ShouldThrow<InvalidOperationException>()
+                startAnother.Should().Throw<InvalidOperationException>()
                             .Which
                             .Message
                             .Should()

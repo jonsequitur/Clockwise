@@ -2,6 +2,7 @@ using System;
 using FluentAssertions;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentAssertions.Extensions;
 using Xunit;
 
 namespace Clockwise.Tests

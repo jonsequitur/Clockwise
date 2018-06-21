@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using FluentAssertions.Extensions;
 using Xunit;
 
 namespace Clockwise.Tests
@@ -22,7 +23,7 @@ namespace Clockwise.Tests
                 }
             }).CancelAfter(source.Token);
 
-            x.ShouldThrow<TimeoutException>();
+            x.Should().Throw<TimeoutException>();
         }
 
         [Fact]
@@ -60,7 +61,7 @@ namespace Clockwise.Tests
                 return true;
             }).CancelAfter(source.Token);
 
-            x.ShouldThrow<TimeoutException>();
+            x.Should().Throw<TimeoutException>();
         }
 
         [Fact]
