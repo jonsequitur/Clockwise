@@ -38,6 +38,11 @@ namespace Clockwise.Tests
             handler.Handle(new CommandDelivery<int>(3));
 
             processed.Should().BeEquivalentTo(1, 2);
+
+            cb.SetState(CircuitBreakerState.Closed);
+            handler.Handle(new CommandDelivery<int>(3));
+
+            processed.Should().BeEquivalentTo(1, 2, 3);
         }
     }
 }
