@@ -15,6 +15,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Clockwise.AzureServiceBus",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Clockwise.AzureServiceBus.Tests", "Clockwise.AzureServiceBus.Tests\Clockwise.AzureServiceBus.Tests.csproj", "{B8046ECD-6565-49E8-BF11-E6AFD047DC17}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Clockwise.Redis", "Clockwise.Redis\Clockwise.Redis.csproj", "{498FAE59-15F5-48F5-9FB6-C27DCADA04BA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Clockwise.Redis.Tests", "Clockwise.Redis.Tests\Clockwise.Redis.Tests.csproj", "{CA5ACC2F-BCDD-4EC5-BEEE-9C78C3DB3FEC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +41,14 @@ Global
 		{B8046ECD-6565-49E8-BF11-E6AFD047DC17}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8046ECD-6565-49E8-BF11-E6AFD047DC17}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8046ECD-6565-49E8-BF11-E6AFD047DC17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{498FAE59-15F5-48F5-9FB6-C27DCADA04BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{498FAE59-15F5-48F5-9FB6-C27DCADA04BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{498FAE59-15F5-48F5-9FB6-C27DCADA04BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{498FAE59-15F5-48F5-9FB6-C27DCADA04BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA5ACC2F-BCDD-4EC5-BEEE-9C78C3DB3FEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA5ACC2F-BCDD-4EC5-BEEE-9C78C3DB3FEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA5ACC2F-BCDD-4EC5-BEEE-9C78C3DB3FEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA5ACC2F-BCDD-4EC5-BEEE-9C78C3DB3FEC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,5 +58,10 @@ Global
 		{D56DF515-3EC0-4775-ADAF-631BA291E2A7} = {BD34D388-1178-4289-A090-A184790689C7}
 		{FFCB0714-2914-4DA0-A330-A85B81AF94AB} = {89A4A984-CB1C-474E-8BE6-1B9C80AFB0E9}
 		{B8046ECD-6565-49E8-BF11-E6AFD047DC17} = {BD34D388-1178-4289-A090-A184790689C7}
+		{498FAE59-15F5-48F5-9FB6-C27DCADA04BA} = {89A4A984-CB1C-474E-8BE6-1B9C80AFB0E9}
+		{CA5ACC2F-BCDD-4EC5-BEEE-9C78C3DB3FEC} = {BD34D388-1178-4289-A090-A184790689C7}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {97571F44-249B-4359-9872-AC23F08C215E}
 	EndGlobalSection
 EndGlobal
