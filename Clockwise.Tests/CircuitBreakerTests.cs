@@ -15,7 +15,7 @@ namespace Clockwise.Tests
                 {
                     if (delivery.Command > 10)
                     {
-                        cb.SetState(CircuitBreakerState.Open);
+                        cb.Open();
                     }
                     else
                     {
@@ -39,7 +39,7 @@ namespace Clockwise.Tests
 
             processed.Should().BeEquivalentTo(1, 2);
 
-            cb.SetState(CircuitBreakerState.Closed);
+            cb.Close();
             handler.Handle(new CommandDelivery<int>(3));
 
             processed.Should().BeEquivalentTo(1, 2, 3);
