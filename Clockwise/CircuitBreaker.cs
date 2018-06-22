@@ -1,11 +1,10 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Clockwise
 {
     public interface ICircuitBreaker
     {
-        CircuitBreakerState State { get; }
-
         CircuitBreakerStateDescriptor StateDescriptor { get; }
         void Open(TimeSpan? expiry = null);
         void HalfOpen();
@@ -14,27 +13,50 @@ namespace Clockwise
         void OnFailure();
     }
 
+
+
     public sealed class CircuitBraker : ICircuitBreaker
     {
         private readonly ICircuitBreakerStorage _storage;
+        private readonly ICommandScheduler<CircuitBrakerSetState> _scheduler;
+        private IDisposable _setStateSubscription;
 
-        public CircuitBraker(ICircuitBreakerStorage storage)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CircuitBraker"/> class.
+        /// </summary>
+        /// <param name="storage">The backing storage.</param>
+        /// <param name="pocketConfiguration">The pocket configuration.</param>
+        /// <exception cref="ArgumentNullException">storage</exception>
+        public CircuitBraker(ICircuitBreakerStorage storage, Configuration pocketConfiguration  = null )
         {
             _storage = storage ?? throw new ArgumentNullException(nameof(storage));
             StateDescriptor = _storage.GetStateAsync().Result;
             _storage.CircuitBreakerStateChanged += StorageOnCircuitBreakerStateChanged;
+
+            if (pocketConfiguration != null)
+            {
+                _scheduler = pocketConfiguration.CommandScheduler<CircuitBrakerSetState>();
+                _setStateSubscription = pocketConfiguration.CommandReceiver<CircuitBrakerSetState>().Subscribe((delivery) =>
+                {
+                    _storage.SetState(delivery.Command.TargetState);
+                    return Task.FromResult(new CompleteDeliveryResult<CircuitBrakerSetState>(delivery) as ICommandDeliveryResult);
+                });
+            }
         }
 
         private void StorageOnCircuitBreakerStateChanged(object sender, CircuitBreakerStateDescriptor e)
         {
             StateDescriptor = e;
         }
-
-        public CircuitBreakerState State => StateDescriptor.State;
+        
         public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
         private void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
             _storage.SetState(newState, expiry);
+            if (_scheduler != null && newState == CircuitBreakerState.Open && expiry?.TotalSeconds > 0)
+            {
+                _scheduler.Schedule(new CircuitBrakerSetState(CircuitBreakerState.Closed), expiry.Value);
+            }
         }
 
         public void Open(TimeSpan? expiry = null)
