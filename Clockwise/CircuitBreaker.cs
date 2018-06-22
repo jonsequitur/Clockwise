@@ -10,6 +10,8 @@ namespace Clockwise
         void Open(TimeSpan? expiry = null);
         void HalfOpen();
         void Close();
+        void OnSuccess();
+        void OnFailure();
     }
 
     public sealed class CircuitBraker : ICircuitBreaker
@@ -60,6 +62,32 @@ namespace Clockwise
             if (StateDescriptor.State != CircuitBreakerState.Closed)
             {
                 SetState(CircuitBreakerState.Closed);
+            }
+        }
+
+        public void OnSuccess()
+        {
+            switch (StateDescriptor.State)
+            {
+                case CircuitBreakerState.Open:
+                    HalfOpen();
+                    break;
+                case CircuitBreakerState.HalfOpen:
+                    Close();
+                    break;
+            }
+        }
+
+        public void OnFailure()
+        {
+            switch (StateDescriptor.State)
+            {
+                case CircuitBreakerState.Closed:
+                    Open();
+                    break;
+                case CircuitBreakerState.HalfOpen:
+                    Open();
+                    break;
             }
         }
     }

@@ -15,7 +15,7 @@ namespace Clockwise.Tests
                 {
                     if (delivery.Command > 10)
                     {
-                        cb.Open();
+                        cb.OnFailure();
                     }
                     else
                     {
