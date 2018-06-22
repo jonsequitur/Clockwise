@@ -6,6 +6,6 @@ namespace Clockwise
     public interface ICircuitBreakerStorage : IObservable<CircuitBreakerStateDescriptor>, IDisposable
     {
         Task<CircuitBreakerStateDescriptor> GetStateAsync();
-        void SetState(CircuitBreakerState newState, TimeSpan? expiry = null);
+        Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null);
     }
 }

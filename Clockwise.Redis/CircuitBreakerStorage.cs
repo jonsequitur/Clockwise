@@ -13,10 +13,10 @@ namespace Clockwise.Redis
     {
         private static readonly Logger Log = new Logger("CircuitBreakerStorage");
         private readonly RedisChannel channel;
-        private readonly ConnectionMultiplexer connection;
+        private ConnectionMultiplexer connection;
         private readonly IDatabase db;
         private readonly string key;
-        private readonly ISubscriber subscriber;
+        private ISubscriber subscriber;
         private static readonly JsonSerializerSettings jsonSettings;
         private CircuitBreakerStateDescriptor stateDescriptor;
         private ImmutableList<IObserver<CircuitBreakerStateDescriptor>> observers;
@@ -61,14 +61,14 @@ namespace Clockwise.Redis
             return stateDescriptor;
         }
 
-        public void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
+        public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
             var json = JsonConvert.SerializeObject(desc, jsonSettings);
 
 
             Log.Info("Setting circuitbreaker state to {state}", desc);
-            db.StringSet(key, json, expiry);
+            await db.StringSetAsync(key, json, expiry);
             subscriber.Publish(channel, json, CommandFlags.HighPriority);
         }
 
@@ -104,8 +104,10 @@ namespace Clockwise.Redis
         }
         public void Dispose()
         {
-            subscriber.Unsubscribe(channel);
-            connection.Dispose();
+            subscriber?.Unsubscribe(channel);
+            subscriber = null;
+            connection?.Dispose();
+            connection = null;
         }
 
         public IDisposable Subscribe(IObserver<CircuitBreakerStateDescriptor> observer)

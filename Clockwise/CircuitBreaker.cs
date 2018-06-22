@@ -7,29 +7,18 @@ namespace Clockwise
     {
         CircuitBreakerStateDescriptor StateDescriptor { get; }
         /// <summary>
-        /// Transition the circuit breaker to <see cref="CircuitBreakerState.Open"/> state.
-        /// </summary>
-        /// <param name="expiry">The expiry timespan for the <see cref="CircuitBreakerState.Open"/> state.
-        /// If specified the circuit breaker will transition back to <see cref="CircuitBreakerState.Closed"/> state after the expiration period elapsed.
-        /// </param>
-        void Open(TimeSpan? expiry = null);
-        void HalfOpen();
-        /// <summary>
-        ///Transition the circuit breaker to <see cref="CircuitBreakerState.Closed"/> state.
-        /// </summary>
-        void Close();
-        /// <summary>
         /// Called to notify success.
         /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.HalfOpen"/> state
         /// if the current state is <see cref="CircuitBreakerState.Open"/>,
         /// otherwise will transition to <see cref="CircuitBreakerState.Closed"/> state.</remarks>
         /// </summary>
-        void OnSuccess();
+        Task SignalSuccess();
         /// <summary>
         /// Called to notify failure.
-        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.Open"/> state.</remarks>
+        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.Open" /> state.</remarks>
         /// </summary>
-        void OnFailure();
+        /// <param name="expiry">The expiry.</param>
+        Task SignalFailure(TimeSpan? expiry = null);
     }
 
     public sealed class CircuitBraker : ICircuitBreaker, IDisposable, IObserver<CircuitBreakerStateDescriptor>
@@ -54,36 +43,36 @@ namespace Clockwise
             if (pocketConfiguration != null)
             {
                 _scheduler = pocketConfiguration.CommandScheduler<CircuitBrakerSetState>();
-                _setStateSubscription = pocketConfiguration.CommandReceiver<CircuitBrakerSetState>().Subscribe((delivery) =>
+                _setStateSubscription = pocketConfiguration.CommandReceiver<CircuitBrakerSetState>().Subscribe(async (delivery) =>
                 {
-                    _storage.SetState(delivery.Command.TargetState);
-                    return Task.FromResult(new CompleteDeliveryResult<CircuitBrakerSetState>(delivery) as ICommandDeliveryResult);
+                    await _storage.SetStateAsync(delivery.Command.TargetState);
+                    return delivery.Complete();
                 });
             }
         }
         public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
-        private void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
+        private async Task SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
-            _storage.SetState(newState, expiry);
+            await _storage.SetStateAsync(newState, expiry);
             if (_scheduler != null && newState == CircuitBreakerState.Open && expiry?.TotalSeconds > 0)
             {
-                _scheduler.Schedule(new CircuitBrakerSetState(CircuitBreakerState.Closed), expiry.Value);
+                await _scheduler.Schedule(new CircuitBrakerSetState(CircuitBreakerState.Closed), expiry.Value);
             }
         }
 
-        public void Open(TimeSpan? expiry = null)
+        public async Task Open(TimeSpan? expiry = null)
         {
             if (StateDescriptor.State != CircuitBreakerState.Open)
             {
-                SetState(CircuitBreakerState.Open, expiry);
+                await SetState(CircuitBreakerState.Open, expiry);
             }
         }
 
-        public void HalfOpen()
+        public async Task HalfOpen()
         {
             if (StateDescriptor.State == CircuitBreakerState.Open)
             {
-                SetState(CircuitBreakerState.HalfOpen);
+                await SetState(CircuitBreakerState.HalfOpen);
             }
             else
             {
@@ -91,36 +80,36 @@ namespace Clockwise
             }
         }
 
-        public void Close()
+        public async Task Close()
         {
             if (StateDescriptor.State != CircuitBreakerState.Closed)
             {
-                SetState(CircuitBreakerState.Closed);
+                await SetState(CircuitBreakerState.Closed);
             }
         }
 
-        public void OnSuccess()
+        public async Task SignalSuccess()
         {
             switch (StateDescriptor.State)
             {
                 case CircuitBreakerState.Open:
-                    HalfOpen();
+                    await HalfOpen();
                     break;
                 case CircuitBreakerState.HalfOpen:
-                    Close();
+                    await Close();
                     break;
             }
         }
 
-        public void OnFailure()
+        public async Task SignalFailure(TimeSpan? expiry = null)
         {
             switch (StateDescriptor.State)
             {
                 case CircuitBreakerState.Closed:
-                    Open();
+                    await Open(expiry);
                     break;
                 case CircuitBreakerState.HalfOpen:
-                    Open();
+                    await Open(expiry);
                     break;
             }
         }

@@ -14,7 +14,7 @@ namespace Clockwise.Redis.Tests
             var cb01 = CircuitBreakerStorage.Create<string>("127.0.0.1");
             var stateDescriptor = await cb01.GetStateAsync();
             stateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
-            cb01.SetState(CircuitBreakerState.HalfOpen);
+            await cb01.SetStateAsync(CircuitBreakerState.HalfOpen);
             await Task.Delay(1000);
             stateDescriptor = await cb01.GetStateAsync();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
