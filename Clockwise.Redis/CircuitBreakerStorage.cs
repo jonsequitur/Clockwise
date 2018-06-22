@@ -16,6 +16,7 @@ namespace Clockwise.Redis
         private readonly string key;
         private readonly ISubscriber subscriber;
         private static readonly JsonSerializerSettings jsonSettings;
+        private CircuitBreakerStateDescriptor stateDescriptor;
 
         static CircuitBreakerStorage()
         {
@@ -41,12 +42,16 @@ namespace Clockwise.Redis
             channel = new RedisChannel(topic, RedisChannel.PatternMode.Auto);
             subscriber = connection.GetSubscriber();
 
-            StateDescriptor = ReadDescriptor();
+            stateDescriptor = ReadDescriptor();
             subscriber.Subscribe(channel, OnStatusChange);
         }
 
-        public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
+        
 
+        public CircuitBreakerStateDescriptor GetState()
+        {
+            return stateDescriptor;
+        }
         public void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
@@ -72,12 +77,12 @@ namespace Clockwise.Redis
         {
             var newDescriptor = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(value, jsonSettings);
 
-            if (newDescriptor != StateDescriptor)
+            if (newDescriptor != stateDescriptor)
             {
                 Log.Info("Received circuitbreaker state update to {state}", newDescriptor);
 
-                StateDescriptor = newDescriptor;
-                CircuitBreakerStateChanged ?.Invoke(this, StateDescriptor);
+                stateDescriptor = newDescriptor;
+                CircuitBreakerStateChanged ?.Invoke(this, stateDescriptor);
             }
         }
         public void Dispose()

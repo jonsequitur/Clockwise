@@ -4,9 +4,10 @@ namespace Clockwise
 {
     public sealed class InMemoryCircuitBreakerStorage : ICircuitBreakerStorage
     {
+        private CircuitBreakerStateDescriptor stateDescriptor;
         public InMemoryCircuitBreakerStorage()
         {
-            StateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now());
+            stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now());
         }
 
         public void Dispose()
@@ -14,15 +15,20 @@ namespace Clockwise
         }
 
         public event EventHandler<CircuitBreakerStateDescriptor> CircuitBreakerStateChanged;
-        public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
+        
+
+        public CircuitBreakerStateDescriptor GetState()
+        {
+            return stateDescriptor;
+        }
 
         public void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Current.Now(), expiry);
-            if (desc != StateDescriptor)
+            if (desc != stateDescriptor)
             {
-                StateDescriptor = desc;
-                CircuitBreakerStateChanged?.Invoke(this, StateDescriptor);
+                stateDescriptor = desc;
+                CircuitBreakerStateChanged?.Invoke(this, stateDescriptor);
             }
         }
     }
