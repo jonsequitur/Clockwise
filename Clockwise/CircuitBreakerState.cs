@@ -11,9 +11,9 @@
         /// </summary>
         Open,
         /// <summary>
-        /// HalfClosed state means that the circuit is partially able to work.
+        /// HalfOpen state means that the circuit is partially able to work.
         /// Tshis could mean that the underlying resource is partially recovered.
         /// </summary>
-        HalfClosed
+        HalfOpen
     }
 }

@@ -13,9 +13,9 @@ namespace Clockwise.Redis.Tests
         {
             var cb01 = CircuitBreakerStorage.Create<string>("127.0.0.1");
             cb01.StateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
-            cb01.SetState(CircuitBreakerState.HalfClosed);
+            cb01.SetState(CircuitBreakerState.HalfOpen);
             Task.Delay(100).Wait();
-            cb01.StateDescriptor.State.Should().Be(CircuitBreakerState.HalfClosed);
+            cb01.StateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 
         public void Dispose()
