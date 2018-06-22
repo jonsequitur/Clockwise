@@ -3,7 +3,23 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public interface ICircuitBreaker
+    public interface ICircuitBreakerStateMachine
+    {
+        /// <summary>
+        /// Called to notify success.
+        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.HalfOpen"/> state
+        /// if the current state is <see cref="CircuitBreakerState.Open"/>,
+        /// otherwise will transition to <see cref="CircuitBreakerState.Closed"/> state.</remarks>
+        /// </summary>
+        void SignalSuccess();
+        /// <summary>
+        /// Called to notify failure.
+        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.Open"/> state.</remarks>
+        /// </summary>
+        void SignalFailure(TimeSpan? expiry = null);
+    }
+
+    public interface ICircuitBreaker : ICircuitBreakerStateMachine
     {
         CircuitBreakerStateDescriptor StateDescriptor { get; }
         /// <summary>
@@ -18,56 +34,44 @@ namespace Clockwise
         ///Transition the circuit breaker to <see cref="CircuitBreakerState.Closed"/> state.
         /// </summary>
         void Close();
-        /// <summary>
-        /// Called to notify success.
-        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.HalfOpen"/> state
-        /// if the current state is <see cref="CircuitBreakerState.Open"/>,
-        /// otherwise will transition to <see cref="CircuitBreakerState.Closed"/> state.</remarks>
-        /// </summary>
-        void OnSuccess();
-        /// <summary>
-        /// Called to notify failure.
-        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.Open"/> state.</remarks>
-        /// </summary>
-        void OnFailure();
     }
 
     public sealed class CircuitBraker : ICircuitBreaker, IDisposable, IObserver<CircuitBreakerStateDescriptor>
     {
-        private readonly ICircuitBreakerStorage _storage;
-        private readonly ICommandScheduler<CircuitBrakerSetState> _scheduler;
-        private IDisposable _setStateSubscription;
+        private readonly ICircuitBreakerStorage storage;
+        private readonly ICommandScheduler<CircuitBrakerSetState> scheduler;
+        private IDisposable setStateSubscription;
         private IDisposable storageSubscription;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CircuitBraker"/> class.
         /// </summary>
-        /// <param name="storage">The backing storage.</param>
+        /// <param name="circuitBreakerStorage">The backing circuitBreakerStorage.</param>
         /// <param name="pocketConfiguration">The pocket configuration.</param>
-        /// <exception cref="ArgumentNullException">storage</exception>
-        public CircuitBraker(ICircuitBreakerStorage storage, Configuration pocketConfiguration = null)
+        /// <exception cref="ArgumentNullException">circuitBreakerStorage</exception>
+        public CircuitBraker(ICircuitBreakerStorage circuitBreakerStorage, Configuration pocketConfiguration = null)
         {
-            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-            StateDescriptor = _storage.GetStateAsync().Result;
-            storageSubscription = _storage.Subscribe(this);
+            storage = circuitBreakerStorage ?? throw new ArgumentNullException(nameof(circuitBreakerStorage));
+            StateDescriptor = storage.GetStateAsync().Result;
+            storageSubscription = storage.Subscribe(this);
 
             if (pocketConfiguration != null)
             {
-                _scheduler = pocketConfiguration.CommandScheduler<CircuitBrakerSetState>();
-                _setStateSubscription = pocketConfiguration.CommandReceiver<CircuitBrakerSetState>().Subscribe((delivery) =>
+                scheduler = pocketConfiguration.CommandScheduler<CircuitBrakerSetState>();
+                setStateSubscription = pocketConfiguration.CommandReceiver<CircuitBrakerSetState>().Subscribe(async (delivery) =>
                 {
-                    _storage.SetState(delivery.Command.TargetState);
-                    return Task.FromResult(new CompleteDeliveryResult<CircuitBrakerSetState>(delivery) as ICommandDeliveryResult);
+                    await storage.SetStateAsync(delivery.Command.TargetState);
+                    return delivery.Complete();
                 });
             }
         }
         public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
-        private void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
+        private async Task SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
-            _storage.SetState(newState, expiry);
-            if (_scheduler != null && newState == CircuitBreakerState.Open && expiry?.TotalSeconds > 0)
+            await storage.SetStateAsync(newState, expiry);
+            if (scheduler != null && newState == CircuitBreakerState.Open && expiry?.TotalSeconds > 0)
             {
-                _scheduler.Schedule(new CircuitBrakerSetState(CircuitBreakerState.Closed), expiry.Value);
+                await scheduler.Schedule(new CircuitBrakerSetState(CircuitBreakerState.Closed), expiry.Value);
             }
         }
 
@@ -99,7 +103,7 @@ namespace Clockwise
             }
         }
 
-        public void OnSuccess()
+        public void SignalSuccess()
         {
             switch (StateDescriptor.State)
             {
@@ -112,23 +116,23 @@ namespace Clockwise
             }
         }
 
-        public void OnFailure()
+        public void SignalFailure(TimeSpan? expiry = null)
         {
             switch (StateDescriptor.State)
             {
                 case CircuitBreakerState.Closed:
-                    Open();
+                    Open(expiry);
                     break;
                 case CircuitBreakerState.HalfOpen:
-                    Open();
+                    Open(expiry);
                     break;
             }
         }
 
         public void Dispose()
         {
-            _setStateSubscription?.Dispose();
-            _setStateSubscription = null;
+            setStateSubscription?.Dispose();
+            setStateSubscription = null;
             storageSubscription?.Dispose();
             storageSubscription = null;
 

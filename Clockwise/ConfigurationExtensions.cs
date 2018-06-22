@@ -120,6 +120,17 @@ namespace Clockwise
             return configuration;
         }
 
+        public static Configuration UseCircuitbreakerFor<T>(
+            this Configuration configuration, ICircuitBreaker circuitBreaker)
+        {
+            var generator = new Func<T,ICircuitBreaker>(_ => circuitBreaker);
+            configuration.Container.RegisterSingle(c => generator);
+            configuration.Properties.CircuitBreakerEnabled = true;
+            return configuration;
+        }
+
+        
+
         public static Configuration TraceCommands(this Configuration configuration)
         {
             configuration.Properties.TracingEnabled = true;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -9,6 +10,70 @@ namespace Clockwise.Tests
     public class CircuitBreakerTests
     {
         [Fact]
+        public async Task When_circuitbreaker_is_not_configured_and_the_handler_requests_the_pause_then_usefull_exception_is_thrown()
+        {
+            var cfg = new Configuration();
+
+
+            var handler = CommandHandler.Create<int>(delivery =>
+            {
+                if (delivery.Command > 10)
+                {
+                    return delivery.PauseAllDeliveriesFor(1.Seconds());
+                }
+                return delivery.Complete();
+            });
+
+            cfg.CommandReceiver<int>().Subscribe(handler);
+
+            var scheduler = cfg.CommandScheduler<int>();
+            var action = new Action(async () => await scheduler.Schedule(1)).Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public async Task When_failure_occours_then_the_handler_can_signal_the_circuitbreaker()
+        {
+            using (var clock = VirtualClock.Start())
+            {
+                var processed = new List<int>();
+                var cb = new CircuitBraker(new InMemoryCircuitBreakerStorage());
+                var cfg = new Configuration();
+                cfg = cfg
+                    .UseInMemoryScheduling()
+                    .UseCircuitbreakerFor<int>(cb);
+
+                var handler = CommandHandler.Create<int>(delivery =>
+                {
+                    if (delivery.Command > 10)
+                    {
+                        return delivery.PauseAllDeliveriesFor(1.Seconds());
+                    }
+
+                    processed.Add(delivery.Command);
+                    return delivery.Complete();
+                });
+
+                cfg.CommandReceiver<int>().Subscribe(handler);
+
+                var scheduler = cfg.CommandScheduler<int>();
+                await scheduler.Schedule(1);
+                await scheduler.Schedule(2);
+                await scheduler.Schedule(11);
+                await scheduler.Schedule(3);
+
+                await clock.AdvanceBy(10.Minutes());
+
+                processed.Should().BeEquivalentTo(1, 2);
+            }
+        }
+
+        [Fact]
+        public void When_failure_occours_then_no_handler_for_same_command_receive_messages()
+        {
+            throw new NotImplementedException();
+        }
+
+        [Fact]
         public void CircuitBreaker_can_be_use_to_intercept_delivery()
         {
             var processed = new List<int>();
@@ -17,7 +82,7 @@ namespace Clockwise.Tests
                 {
                     if (delivery.Command > 10)
                     {
-                        cb.OnFailure();
+                        cb.SignalFailure();
                     }
                     else
                     {
@@ -43,7 +108,7 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public void CircuitBreaker_once_closed_lets_delivery_go_though()
+        public void CircuitBreaker_once_closed_lets_delivery_go_through()
         {
             var processed = new List<int>();
             var cb = new CircuitBraker(new InMemoryCircuitBreakerStorage());
@@ -51,7 +116,7 @@ namespace Clockwise.Tests
                 {
                     if (delivery.Command > 10)
                     {
-                        cb.OnFailure();
+                        cb.SignalFailure();
                     }
                     else
                     {

@@ -100,13 +100,7 @@ namespace Clockwise
             CommandSubscribingMiddleware<T> subscribe) =>
             Create<T>(
                 receive:
-                (handle, timeout) =>
-                {
-                    return receive(handle, timeout, receiver.Receive);
-                },
-                subscribe: onNext =>
-                {
-                    return subscribe(onNext, receiver.Subscribe);
-                });
+                (handle, timeout) => receive(handle, timeout, receiver.Receive),
+                subscribe: onNext => subscribe(onNext, receiver.Subscribe));
     }
 }

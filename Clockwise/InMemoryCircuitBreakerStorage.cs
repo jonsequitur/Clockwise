@@ -25,9 +25,10 @@ namespace Clockwise
             return Task.FromResult(stateDescriptor);
         }
 
-        public void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
+        public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Current.Now(), expiry);
+            await Task.Yield();
             if (desc != stateDescriptor)
             {
                 stateDescriptor = desc;

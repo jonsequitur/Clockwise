@@ -60,7 +60,7 @@ namespace Clockwise
                     return result;
                 }
             });
-
+        
         public static ICommandHandler<T> UseMiddleware<T>(
             this ICommandHandler<T> handler,
             CommandHandlingMiddleware<T> middleware) =>
