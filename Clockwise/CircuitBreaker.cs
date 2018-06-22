@@ -17,7 +17,7 @@ namespace Clockwise
         public CircuitBraker(ICircuitBreakerStorage storage)
         {
             _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-            StateDescriptor = _storage.GetState();
+            StateDescriptor = _storage.GetStateAsync().Result;
             _storage.CircuitBreakerStateChanged += StorageOnCircuitBreakerStateChanged;
         }
 

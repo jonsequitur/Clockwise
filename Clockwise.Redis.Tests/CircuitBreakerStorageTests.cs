@@ -9,13 +9,15 @@ namespace Clockwise.Redis.Tests
     public class CircuitBreakerStorageTests : IDisposable
     {
         [Fact]
-        public void SingalingState()
+        public async Task SingalingState()
         {
             var cb01 = CircuitBreakerStorage.Create<string>("127.0.0.1");
-            cb01.GetState().State.Should().Be(CircuitBreakerState.Closed);
+            var stateDescriptor = await cb01.GetStateAsync();
+            stateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
             cb01.SetState(CircuitBreakerState.HalfOpen);
-            Task.Delay(100).Wait();
-            cb01.GetState().State.Should().Be(CircuitBreakerState.HalfOpen);
+            await Task.Delay(100);
+            stateDescriptor = await cb01.GetStateAsync();
+            stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 
         public void Dispose()

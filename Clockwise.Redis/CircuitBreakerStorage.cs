@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -33,6 +34,7 @@ namespace Clockwise.Redis
 
         private CircuitBreakerStorage(string connectionString, int dbId, Type commandType)
         {
+            stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now());
             connection = ConnectionMultiplexer.Connect(connectionString);
             db = connection.GetDatabase(dbId);
 
@@ -41,17 +43,22 @@ namespace Clockwise.Redis
 
             channel = new RedisChannel(topic, RedisChannel.PatternMode.Auto);
             subscriber = connection.GetSubscriber();
-
-            stateDescriptor = ReadDescriptor();
+            
             subscriber.Subscribe(channel, OnStatusChange);
         }
 
-        
 
-        public CircuitBreakerStateDescriptor GetState()
+
+        public async Task<CircuitBreakerStateDescriptor> GetStateAsync()
         {
+            if (stateDescriptor == null)
+            {
+                stateDescriptor = await ReadDescriptor();
+            }
+
             return stateDescriptor;
         }
+
         public void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
@@ -63,12 +70,15 @@ namespace Clockwise.Redis
             subscriber.Publish(channel, json, CommandFlags.HighPriority);
         }
 
-        private CircuitBreakerStateDescriptor ReadDescriptor()
+        private async Task<CircuitBreakerStateDescriptor> ReadDescriptor()
         {
             var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed);
-            var src = db.StringGet(key);
+            var src = await db.StringGetAsync(key);
 
-            if (!src.IsNullOrEmpty) desc = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(src, jsonSettings);
+            if (!src.IsNullOrEmpty)
+            {
+                desc = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(src, jsonSettings);
+            }
 
             return desc;
         }

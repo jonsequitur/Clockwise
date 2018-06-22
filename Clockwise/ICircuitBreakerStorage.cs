@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Clockwise
 {
     public interface ICircuitBreakerStorage : IDisposable
     {
         event EventHandler<CircuitBreakerStateDescriptor> CircuitBreakerStateChanged;
-        CircuitBreakerStateDescriptor GetState();
+        Task<CircuitBreakerStateDescriptor> GetStateAsync();
         void SetState(CircuitBreakerState newState, TimeSpan? expiry = null);
     }
 }
