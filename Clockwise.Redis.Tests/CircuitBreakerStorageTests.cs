@@ -15,7 +15,7 @@ namespace Clockwise.Redis.Tests
             var stateDescriptor = await cb01.GetStateAsync();
             stateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
             cb01.SetState(CircuitBreakerState.HalfOpen);
-            await Task.Delay(100);
+            await Task.Delay(1000);
             stateDescriptor = await cb01.GetStateAsync();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }

@@ -6,20 +6,38 @@ namespace Clockwise
     public interface ICircuitBreaker
     {
         CircuitBreakerStateDescriptor StateDescriptor { get; }
+        /// <summary>
+        /// Transition the circuit breaker to <see cref="CircuitBreakerState.Open"/> state.
+        /// </summary>
+        /// <param name="expiry">The expiry timespan for the <see cref="CircuitBreakerState.Open"/> state.
+        /// If specified the circuit breaker will transition back to <see cref="CircuitBreakerState.Closed"/> state after the expiration period elapsed.
+        /// </param>
         void Open(TimeSpan? expiry = null);
         void HalfOpen();
+        /// <summary>
+        ///Transition the circuit breaker to <see cref="CircuitBreakerState.Closed"/> state.
+        /// </summary>
         void Close();
+        /// <summary>
+        /// Called to notify success.
+        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.HalfOpen"/> state
+        /// if the current state is <see cref="CircuitBreakerState.Open"/>,
+        /// otherwise will transition to <see cref="CircuitBreakerState.Closed"/> state.</remarks>
+        /// </summary>
         void OnSuccess();
+        /// <summary>
+        /// Called to notify failure.
+        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.Open"/> state.</remarks>
+        /// </summary>
         void OnFailure();
     }
 
-
-
-    public sealed class CircuitBraker : ICircuitBreaker
+    public sealed class CircuitBraker : ICircuitBreaker, IDisposable, IObserver<CircuitBreakerStateDescriptor>
     {
         private readonly ICircuitBreakerStorage _storage;
         private readonly ICommandScheduler<CircuitBrakerSetState> _scheduler;
         private IDisposable _setStateSubscription;
+        private IDisposable storageSubscription;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CircuitBraker"/> class.
@@ -27,11 +45,11 @@ namespace Clockwise
         /// <param name="storage">The backing storage.</param>
         /// <param name="pocketConfiguration">The pocket configuration.</param>
         /// <exception cref="ArgumentNullException">storage</exception>
-        public CircuitBraker(ICircuitBreakerStorage storage, Configuration pocketConfiguration  = null )
+        public CircuitBraker(ICircuitBreakerStorage storage, Configuration pocketConfiguration = null)
         {
             _storage = storage ?? throw new ArgumentNullException(nameof(storage));
             StateDescriptor = _storage.GetStateAsync().Result;
-            _storage.CircuitBreakerStateChanged += StorageOnCircuitBreakerStateChanged;
+            storageSubscription = _storage.Subscribe(this);
 
             if (pocketConfiguration != null)
             {
@@ -43,12 +61,6 @@ namespace Clockwise
                 });
             }
         }
-
-        private void StorageOnCircuitBreakerStateChanged(object sender, CircuitBreakerStateDescriptor e)
-        {
-            StateDescriptor = e;
-        }
-        
         public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
         private void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
@@ -111,6 +123,28 @@ namespace Clockwise
                     Open();
                     break;
             }
+        }
+
+        public void Dispose()
+        {
+            _setStateSubscription?.Dispose();
+            _setStateSubscription = null;
+            storageSubscription?.Dispose();
+            storageSubscription = null;
+
+        }
+
+        void IObserver<CircuitBreakerStateDescriptor>.OnCompleted()
+        {
+        }
+
+        void IObserver<CircuitBreakerStateDescriptor>.OnError(Exception error)
+        {
+        }
+
+        void IObserver<CircuitBreakerStateDescriptor>.OnNext(CircuitBreakerStateDescriptor value)
+        {
+            StateDescriptor = value;
         }
     }
 }
