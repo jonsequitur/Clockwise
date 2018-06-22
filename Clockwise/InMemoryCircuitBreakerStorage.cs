@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Clockwise
 {
@@ -17,9 +18,9 @@ namespace Clockwise
         public event EventHandler<CircuitBreakerStateDescriptor> CircuitBreakerStateChanged;
         
 
-        public CircuitBreakerStateDescriptor GetState()
+        public Task<CircuitBreakerStateDescriptor> GetStateAsync()
         {
-            return stateDescriptor;
+            return Task.FromResult(stateDescriptor);
         }
 
         public void SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
