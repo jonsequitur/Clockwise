@@ -12,10 +12,10 @@ namespace Clockwise.Redis.Tests
         public void SingalingState()
         {
             var cb01 = CircuitBreakerStorage.Create<string>("127.0.0.1");
-            cb01.StateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
+            cb01.GetState().State.Should().Be(CircuitBreakerState.Closed);
             cb01.SetState(CircuitBreakerState.HalfOpen);
             Task.Delay(100).Wait();
-            cb01.StateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
+            cb01.GetState().State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 
         public void Dispose()

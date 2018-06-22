@@ -5,7 +5,7 @@ namespace Clockwise
     public interface ICircuitBreakerStorage : IDisposable
     {
         event EventHandler<CircuitBreakerStateDescriptor> CircuitBreakerStateChanged;
-        CircuitBreakerStateDescriptor StateDescriptor { get; }
+        CircuitBreakerStateDescriptor GetState();
         void SetState(CircuitBreakerState newState, TimeSpan? expiry = null);
     }
 }
