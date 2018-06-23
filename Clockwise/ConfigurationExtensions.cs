@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Pocket;
 
 namespace Clockwise
@@ -57,24 +58,22 @@ namespace Clockwise
 
                 var cb = configuration.Container.Resolve<TCircuitBreaker>();
 
-                CommandReceivingMiddleware<TChannel> commandReceivingMiddleware = async (handlerDelegate, timeout, next) =>
+                async Task<ICommandDeliveryResult> ReceivingMiddleware(CommandHandler<TChannel> handlerDelegate, TimeSpan? timeout, Func<CommandHandler<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> next)
                 {
                     return await next(async delivery =>
                     {
                         var result = await handlerDelegate(delivery);
                         return result;
-
                     }, timeout);
-                };
-                CommandSubscribingMiddleware<TChannel> commandSubscribingMiddleware = (handle, subscribe) =>
+                }
+
+                IDisposable SubscribingMiddleware(CommandHandler<TChannel> handle, Func<CommandHandler<TChannel>, IDisposable> subscribe)
                 {
                     return subscribe(async delivery =>
                     {
-
                         {
-                            if (cb.StateDescriptor.State == CircuitBreakerState.Open)
-                                return delivery.Retry(cb.StateDescriptor.TimeToLive);
-                            
+                            if (cb.StateDescriptor.State == CircuitBreakerState.Open) return delivery.Retry(cb.StateDescriptor.TimeToLive);
+
                             var result1 = await handle(delivery);
                             switch (result1)
                             {
@@ -82,15 +81,15 @@ namespace Clockwise
                                     await cb.SignalFailure();
                                     break;
                             }
-                           
+
                             return result1;
                         }
                     });
-                        
-                };
+                }
+
                 var instrumented = receiver.UseMiddleware(
-                    receive: commandReceivingMiddleware,
-                    subscribe: commandSubscribingMiddleware);
+                    receive: ReceivingMiddleware,
+                    subscribe: SubscribingMiddleware);
 
                 return instrumented;
             });
