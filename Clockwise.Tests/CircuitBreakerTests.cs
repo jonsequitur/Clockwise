@@ -83,9 +83,52 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public void When_failure_occours_then_no_handler_for_same_command_receive_messages()
+        public async Task When_failure_occours_then_no_handler_for_same_command_receive_messages()
         {
-            throw new NotImplementedException();
+            using (var clock = VirtualClock.Start())
+            {
+                var processedInt = new List<int>();
+                var processedLong = new List<long>();
+                var cfg = new Configuration();
+                cfg = cfg
+                    .UseDependency<ICircuitBreakerStorage>(type => new InMemoryCircuitBreakerStorage())
+                    .UseInMemoryScheduling()
+                    .UseCircuitbreakerFor<int, ACICircuitBreaker>()
+                    .UseCircuitbreakerFor<long, ACICircuitBreaker>();
+
+
+
+                var intCommandHandler = CommandHandler.Create<int>(delivery =>
+                {
+                    if (delivery.Command > 10)
+                    {
+                        return delivery.PauseAllDeliveriesFor(1.Seconds());
+                    }
+
+                    processedInt.Add(delivery.Command);
+                    return delivery.Complete();
+                });
+
+                var longCommandHandler = CommandHandler.Create<long>(delivery =>
+                {
+                    processedLong.Add(delivery.Command);
+                    return delivery.Complete();
+                });
+
+                cfg.CommandReceiver<int>().Subscribe(intCommandHandler);
+                cfg.CommandReceiver<long>().Subscribe(longCommandHandler);
+
+                var intCommandscheduler = cfg.CommandScheduler<int>();
+
+                await intCommandscheduler.Schedule(11);
+                var longCommandScheduler = cfg.CommandScheduler<long>();
+                await longCommandScheduler.Schedule(1);
+                await longCommandScheduler.Schedule(2);
+                await longCommandScheduler.Schedule(3);
+                await clock.AdvanceBy(10.Minutes());
+
+                processedLong.Should().BeEmpty();
+            }
         }
 
         [Fact]
