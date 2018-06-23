@@ -7,8 +7,8 @@ namespace Clockwise
     public static class CommandReceiver
     {
         internal static ICommandReceiver<T> Create<T>(
-            Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
-            Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> subscribe) =>
+            Func<CommandHandler<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
+            Func<CommandHandler<T>, IDisposable> subscribe) =>
             new AnonymousCommandReceiver<T>(receive, subscribe);
 
         public static async Task<ICommandDeliveryResult> Receive<T>(

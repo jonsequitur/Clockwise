@@ -13,7 +13,7 @@ namespace Clockwise
     {
         private readonly VirtualClock clock;
 
-        private readonly List<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>> subscribers = new List<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>>();
+        private readonly List<CommandHandler<T>> subscribers = new List<CommandHandler<T>>();
 
         private readonly ConcurrentDictionary<string, ICommandDelivery<T>> pendingDeliveries = new ConcurrentDictionary<string, ICommandDelivery<T>>();
 
@@ -42,7 +42,7 @@ namespace Clockwise
         }
 
         public async Task<ICommandDeliveryResult> Receive(
-            Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
+            CommandHandler<T> handle,
             TimeSpan? timeout = null)
         {
             timeout = timeout ??
@@ -75,7 +75,7 @@ namespace Clockwise
             return result;
         }
 
-        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext)
+        public IDisposable Subscribe(CommandHandler<T> handle)
         {
             lock (subscribers)
             {
@@ -84,14 +84,14 @@ namespace Clockwise
                     ThrowObjectDisposed();
                 }
 
-                subscribers.Add(onNext);
+                subscribers.Add(handle);
             }
 
             return Disposable.Create(() =>
             {
                 lock (subscribers)
                 {
-                    subscribers.Remove(onNext);
+                    subscribers.Remove(handle);
                 }
             });
         }
@@ -129,9 +129,9 @@ namespace Clockwise
             }
         }
 
-        private Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>[] GetReceivers()
+        private CommandHandler<T>[] GetReceivers()
         {
-            Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>[] receivers;
+            CommandHandler<T>[] receivers;
 
             lock (subscribers)
             {

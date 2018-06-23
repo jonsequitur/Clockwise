@@ -224,10 +224,10 @@ namespace Clockwise.Tests
 
         private class FakeReceiver<T> : ICommandReceiver<T>
         {
-            public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext) =>
+            public IDisposable Subscribe(CommandHandler<T> handle) =>
                 throw new NotImplementedException();
 
-            public Task<ICommandDeliveryResult> Receive(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext, TimeSpan? timeout = null) =>
+            public Task<ICommandDeliveryResult> Receive(CommandHandler<T> handle, TimeSpan? timeout = null) =>
                 throw new NotImplementedException();
         }
     }

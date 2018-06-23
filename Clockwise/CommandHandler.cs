@@ -5,7 +5,7 @@ namespace Clockwise
 {
     public static class CommandHandler
     {
-        public static ICommandHandler<T> Create<T>(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle) =>
+        public static ICommandHandler<T> Create<T>(CommandHandler<T> handle) =>
             new AnonymousCommandHandler<T>(handle);
 
         public static ICommandHandler<T> Create<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
@@ -70,22 +70,22 @@ namespace Clockwise
                               async d => await handler.Handle(d)));
     }
 
-    public delegate  Task<ICommandDeliveryResult> HandlerDelegate<in T>(ICommandDelivery<T> delivery);
+    public delegate Task<ICommandDeliveryResult> CommandHandler<in T> (ICommandDelivery<T> delivery);
 
     public delegate Task<ICommandDeliveryResult> CommandHandlingMiddleware<T>(
         ICommandDelivery<T> delivery,
-        HandlerDelegate<T> handle);
+        CommandHandler<T> handle);
 
     public delegate Task CommandSchedulingMiddleware<T>(
         ICommandDelivery<T> delivery,
         Func<ICommandDelivery<T>, Task> schedule);
 
     public delegate IDisposable CommandSubscribingMiddleware<T>(
-        HandlerDelegate<T> handle,
-        Func<HandlerDelegate<T>, IDisposable> subscribe);
+        CommandHandler<T> handle,
+        Func<CommandHandler<T>, IDisposable> subscribe);
 
     public delegate Task<ICommandDeliveryResult> CommandReceivingMiddleware<T>(
-        HandlerDelegate<T> handle,
+        CommandHandler<T> handle,
         TimeSpan? timeout,
-        Func<HandlerDelegate<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive);
+        Func<CommandHandler<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive);
 }

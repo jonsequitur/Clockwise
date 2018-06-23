@@ -5,13 +5,13 @@ namespace Clockwise
 {
     internal class AnonymousCommandReceiver<T> : ICommandReceiver<T>
     {
-        private readonly Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> receive;
+        private readonly Func<CommandHandler<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive;
 
-        private readonly Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> subscribe;
+        private readonly Func<CommandHandler<T>, IDisposable> subscribe;
 
         public AnonymousCommandReceiver(
-            Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
-            Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> subscribe)
+            Func<CommandHandler<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
+            Func<CommandHandler<T>, IDisposable> subscribe)
         {
             this.subscribe = subscribe ??
                              throw new ArgumentNullException(nameof(subscribe));
@@ -20,12 +20,12 @@ namespace Clockwise
                            throw new ArgumentNullException(nameof(receive));
         }
 
-        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext)
+        public IDisposable Subscribe(CommandHandler<T> handle)
         {
-            return subscribe(onNext);
+            return subscribe(handle);
         }
 
-        public async Task<ICommandDeliveryResult> Receive(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle, TimeSpan? timeout = null)
+        public async Task<ICommandDeliveryResult> Receive(CommandHandler<T> handle, TimeSpan? timeout = null)
         {
             return await receive(handle, timeout);
         }
