@@ -3,6 +3,10 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
+    public interface ICircuitBreaker<T> : ICircuitBreaker
+    {
+
+    }
     public interface ICircuitBreaker
     {
         CircuitBreakerStateDescriptor StateDescriptor { get; }
@@ -21,7 +25,8 @@ namespace Clockwise
         Task SignalFailure(TimeSpan? expiry = null);
     }
 
-    public sealed class CircuitBraker<T> : ICircuitBreaker, IDisposable, IObserver<CircuitBreakerStateDescriptor>
+    public abstract class CircuitBreaker<T>: ICircuitBreaker<T>, IDisposable, IObserver<CircuitBreakerStateDescriptor>
+    where T : ICircuitBreaker<T>
     {
         private readonly ICircuitBreakerStorage storage;
         private readonly ICommandScheduler<CircuitBrakerSetState<T>> scheduler;
@@ -29,12 +34,12 @@ namespace Clockwise
         private IDisposable storageSubscription;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CircuitBraker{T}"/> class.
+        /// Initializes a new instance of the <see cref="CircuitBreaker{T}"/> class.
         /// </summary>
         /// <param name="storage">The storage.</param>
         /// <param name="pocketConfiguration">The pocket configuration.</param>
         /// <exception cref="ArgumentNullException">storage</exception>
-        public CircuitBraker(ICircuitBreakerStorage storage, Configuration pocketConfiguration = null)
+        protected CircuitBreaker(ICircuitBreakerStorage storage, Configuration pocketConfiguration = null)
         {
             this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
             StateDescriptor = this.storage.GetStateAsync().Result;

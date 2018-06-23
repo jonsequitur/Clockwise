@@ -7,9 +7,11 @@ using Xunit;
 
 namespace Clockwise.Tests
 {
-    public class ResourceOne
+    public class ACICircuitBreaker : CircuitBreaker<ACICircuitBreaker>
     {
-
+        public ACICircuitBreaker(ICircuitBreakerStorage storage, Configuration pocketConfiguration = null) : base(storage, pocketConfiguration)
+        {
+        }
     }
     public class CircuitBreakerTests
     {
@@ -45,11 +47,11 @@ namespace Clockwise.Tests
             using (var clock = VirtualClock.Start())
             {
                 var processed = new List<int>();
-                var cb = new CircuitBraker<ResourceOne>(new InMemoryCircuitBreakerStorage());
+                var cb = new ACICircuitBreaker(new InMemoryCircuitBreakerStorage());
                 var cfg = new Configuration();
                 cfg = cfg
-                    .UseInMemoryScheduling();
-                  //  .UseCircuitbreakerFor<int>(cb);
+                    .UseInMemoryScheduling()
+                   .UseCircuitbreakerFor<int>(cb);
 
                 var handler = CommandHandler.Create<int>(delivery =>
                 {
@@ -86,7 +88,7 @@ namespace Clockwise.Tests
         public async Task CircuitBreaker_can_be_use_to_intercept_delivery()
         {
             var processed = new List<int>();
-            var cb = new CircuitBraker<ResourceOne>(new InMemoryCircuitBreakerStorage());
+            var cb = new ACICircuitBreaker(new InMemoryCircuitBreakerStorage());
             var handler = CommandHandler.Create<int>(async delivery =>
                 {
                     if (delivery.Command > 10)
@@ -120,7 +122,7 @@ namespace Clockwise.Tests
         public async Task CircuitBreaker_once_closed_lets_delivery_go_though()
         {
             var processed = new List<int>();
-            var cb = new CircuitBraker<ResourceOne>(new InMemoryCircuitBreakerStorage());
+            var cb = new ACICircuitBreaker(new InMemoryCircuitBreakerStorage());
             var handler = CommandHandler.Create<int>(async delivery =>
                 {
                     if (delivery.Command > 10)
@@ -162,7 +164,7 @@ namespace Clockwise.Tests
             {
                 var cfg = new Configuration();
                 cfg.UseInMemoryScheduling();
-                var cb = new CircuitBraker<ResourceOne>(new InMemoryCircuitBreakerStorage(),cfg);
+                var cb = new ACICircuitBreaker(new InMemoryCircuitBreakerStorage(),cfg);
                 await cb.Open(9.Seconds());
                 cb.StateDescriptor.State.Should().Be(CircuitBreakerState.Open);
                 await clock.AdvanceBy(11.Seconds());
