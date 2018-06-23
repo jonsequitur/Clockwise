@@ -56,7 +56,15 @@ namespace Clockwise
             configuration.Container.AfterCreating<ICommandReceiver<TChannel>>(receiver =>
             {
 
-                var cb = configuration.Container.Resolve<TCircuitBreaker>();
+                TCircuitBreaker cb = default;
+                try
+                {
+                    cb = configuration.Container.Resolve<TCircuitBreaker>();
+                }
+                catch (Exception e)
+                {
+                    throw new CircuitBreakerException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}",e);
+                }
 
                 async Task<ICommandDeliveryResult> ReceivingMiddleware(CommandHandler<TChannel> handlerDelegate, TimeSpan? timeout, Func<CommandHandler<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> next)
                 {

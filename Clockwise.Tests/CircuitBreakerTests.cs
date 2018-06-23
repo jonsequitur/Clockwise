@@ -21,7 +21,8 @@ namespace Clockwise.Tests
             using (var clock = VirtualClock.Start())
             {
                 var cfg = new Configuration()
-                    .UseInMemoryScheduling();
+                    .UseInMemoryScheduling()
+                    .UseCircuitbreakerFor<int, ACICircuitBreaker>();
 
 
                 var handler = CommandHandler.Create<int>(delivery =>
@@ -34,10 +35,10 @@ namespace Clockwise.Tests
                     return delivery.Complete();
                 });
 
-                cfg.CommandReceiver<int>().Subscribe(handler);
-
-                var scheduler = cfg.CommandScheduler<int>();
-                var action = new Action(async () => await scheduler.Schedule(1)).Should().Throw<Exception>();
+                new Action(() =>
+                {
+                    cfg.CommandReceiver<int>().Subscribe(handler);
+                }).Should().Throw<CircuitBreakerException>();
             }
         }
 
