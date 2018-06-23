@@ -19,4 +19,11 @@
         /// </value>
         public CircuitBreakerState TargetState { get;  }
     }
+
+    public class CircuitBrakerSetState<T> : CircuitBrakerSetState
+    {
+        public CircuitBrakerSetState(CircuitBreakerState targetState) : base(targetState)
+        {
+        }
+    }
 }

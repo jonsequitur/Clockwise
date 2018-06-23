@@ -21,31 +21,31 @@ namespace Clockwise
         Task SignalFailure(TimeSpan? expiry = null);
     }
 
-    public sealed class CircuitBraker : ICircuitBreaker, IDisposable, IObserver<CircuitBreakerStateDescriptor>
+    public sealed class CircuitBraker<T> : ICircuitBreaker, IDisposable, IObserver<CircuitBreakerStateDescriptor>
     {
-        private readonly ICircuitBreakerStorage _storage;
-        private readonly ICommandScheduler<CircuitBrakerSetState> _scheduler;
-        private IDisposable _setStateSubscription;
+        private readonly ICircuitBreakerStorage storage;
+        private readonly ICommandScheduler<CircuitBrakerSetState<T>> scheduler;
+        private IDisposable setStateSubscription;
         private IDisposable storageSubscription;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CircuitBraker"/> class.
+        /// Initializes a new instance of the <see cref="CircuitBraker{T}"/> class.
         /// </summary>
-        /// <param name="storage">The backing storage.</param>
+        /// <param name="storage">The storage.</param>
         /// <param name="pocketConfiguration">The pocket configuration.</param>
         /// <exception cref="ArgumentNullException">storage</exception>
         public CircuitBraker(ICircuitBreakerStorage storage, Configuration pocketConfiguration = null)
         {
-            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-            StateDescriptor = _storage.GetStateAsync().Result;
-            storageSubscription = _storage.Subscribe(this);
+            this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
+            StateDescriptor = this.storage.GetStateAsync().Result;
+            storageSubscription = this.storage.Subscribe(this);
 
             if (pocketConfiguration != null)
             {
-                _scheduler = pocketConfiguration.CommandScheduler<CircuitBrakerSetState>();
-                _setStateSubscription = pocketConfiguration.CommandReceiver<CircuitBrakerSetState>().Subscribe(async (delivery) =>
+                scheduler = pocketConfiguration.CommandScheduler<CircuitBrakerSetState<T>>();
+                setStateSubscription = pocketConfiguration.CommandReceiver<CircuitBrakerSetState<T>>().Subscribe(async (delivery) =>
                 {
-                    await _storage.SetStateAsync(delivery.Command.TargetState);
+                    await this.storage.SetStateAsync(delivery.Command.TargetState);
                     return delivery.Complete();
                 });
             }
@@ -53,10 +53,10 @@ namespace Clockwise
         public CircuitBreakerStateDescriptor StateDescriptor { get; private set; }
         private async Task SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
-            await _storage.SetStateAsync(newState, expiry);
-            if (_scheduler != null && newState == CircuitBreakerState.Open && expiry?.TotalSeconds > 0)
+            await storage.SetStateAsync(newState, expiry);
+            if (scheduler != null && newState == CircuitBreakerState.Open && expiry?.TotalSeconds > 0)
             {
-                await _scheduler.Schedule(new CircuitBrakerSetState(CircuitBreakerState.Closed), expiry.Value);
+                await scheduler.Schedule(new CircuitBrakerSetState<T>(CircuitBreakerState.Closed), expiry.Value);
             }
         }
 
@@ -116,8 +116,8 @@ namespace Clockwise
 
         public void Dispose()
         {
-            _setStateSubscription?.Dispose();
-            _setStateSubscription = null;
+            setStateSubscription?.Dispose();
+            setStateSubscription = null;
             storageSubscription?.Dispose();
             storageSubscription = null;
 
