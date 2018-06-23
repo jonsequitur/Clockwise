@@ -57,11 +57,11 @@ namespace Clockwise
 
                 var cb = configuration.Container.Resolve<TCircuitBreaker>();
 
-                CommandReceivingMiddleware<TChannel> commandReceivingMiddleware = async (handle, timeout, next) =>
+                CommandReceivingMiddleware<TChannel> commandReceivingMiddleware = async (handlerDelegate, timeout, next) =>
                 {
                     return await next(async delivery =>
                     {
-                        var result = await handle(delivery);
+                        var result = await handlerDelegate(delivery);
                         return result;
 
                     }, timeout);

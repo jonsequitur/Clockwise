@@ -70,20 +70,22 @@ namespace Clockwise
                               async d => await handler.Handle(d)));
     }
 
+    public delegate  Task<ICommandDeliveryResult> HandlerDelegate<in T>(ICommandDelivery<T> delivery);
+
     public delegate Task<ICommandDeliveryResult> CommandHandlingMiddleware<T>(
         ICommandDelivery<T> delivery,
-        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle);
+        HandlerDelegate<T> handle);
 
     public delegate Task CommandSchedulingMiddleware<T>(
         ICommandDelivery<T> delivery,
         Func<ICommandDelivery<T>, Task> schedule);
 
     public delegate IDisposable CommandSubscribingMiddleware<T>(
-        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
-        Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> subscribe);
+        HandlerDelegate<T> handle,
+        Func<HandlerDelegate<T>, IDisposable> subscribe);
 
     public delegate Task<ICommandDeliveryResult> CommandReceivingMiddleware<T>(
-        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
+        HandlerDelegate<T> handle,
         TimeSpan? timeout,
-        Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> receive);
+        Func<HandlerDelegate<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive);
 }
