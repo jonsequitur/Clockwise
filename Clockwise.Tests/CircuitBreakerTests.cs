@@ -47,11 +47,13 @@ namespace Clockwise.Tests
             using (var clock = VirtualClock.Start())
             {
                 var processed = new List<int>();
-                var cb = new ACICircuitBreaker(new InMemoryCircuitBreakerStorage());
                 var cfg = new Configuration();
                 cfg = cfg
+                    .UseDependency<ICircuitBreakerStorage>(type => new InMemoryCircuitBreakerStorage())
                     .UseInMemoryScheduling()
-                   .UseCircuitbreakerFor<int>(cb);
+                   .UseCircuitbreakerFor<int, ACICircuitBreaker>();
+
+                
 
                 var handler = CommandHandler.Create<int>(delivery =>
                 {
@@ -64,8 +66,9 @@ namespace Clockwise.Tests
                     return delivery.Complete();
                 });
 
-                cfg.CommandReceiver<int>().Subscribe(handler);
-
+                var rc = cfg.CommandReceiver<int>();
+                 rc.Subscribe(handler);
+                
                 var scheduler = cfg.CommandScheduler<int>();
                 await scheduler.Schedule(1);
                 await scheduler.Schedule(2);

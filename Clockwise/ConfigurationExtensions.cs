@@ -50,6 +50,52 @@ namespace Clockwise
             return configuration;
         }
 
+        public static Configuration UseCircuitbreakerFor<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : ICircuitBreaker
+        {
+            configuration.Container.AfterCreating<ICommandReceiver<TChannel>>(receiver =>
+            {
+
+                var cb = configuration.Container.Resolve<TCircuitBreaker>();
+
+                CommandReceivingMiddleware<TChannel> commandReceivingMiddleware = async (handle, timeout, next) =>
+                {
+                    return await next(async delivery =>
+                    {
+                        var result = await handle(delivery);
+                        return result;
+
+                    }, timeout);
+                };
+                CommandSubscribingMiddleware<TChannel> commandSubscribingMiddleware = (handle, subscribe) =>
+                {
+                    return subscribe(async delivery =>
+                    {
+
+                        {
+                            if (cb.StateDescriptor.State == CircuitBreakerState.Open)
+                                return delivery.Retry(cb.StateDescriptor.TimeToLive);
+                            
+                            var result1 = await handle(delivery);
+                            switch (result1)
+                            {
+                                case CommandDelivery.PauseDeliveryResult<TChannel> pause:
+                                    await cb.SignalFailure();
+                                    break;
+                            }
+                           
+                            return result1;
+                        }
+                    });
+                        
+                };
+                var instrumented = receiver.UseMiddleware(
+                    receive: commandReceivingMiddleware,
+                    subscribe: commandSubscribingMiddleware);
+
+                return instrumented;
+            });
+            return configuration;
+        }
         public static Configuration UseDependencies(
             this Configuration configuration,
             Func<Type, Func<object>> strategy)
@@ -158,7 +204,7 @@ namespace Clockwise
                                 configuration,
                                 commandType,
                                 container,
-                                (dynamic) bus);
+                                (dynamic)bus);
 
                             return bus;
                         });

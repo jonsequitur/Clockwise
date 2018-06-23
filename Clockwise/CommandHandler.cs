@@ -72,18 +72,18 @@ namespace Clockwise
 
     public delegate Task<ICommandDeliveryResult> CommandHandlingMiddleware<T>(
         ICommandDelivery<T> delivery,
-        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> next);
+        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle);
 
     public delegate Task CommandSchedulingMiddleware<T>(
         ICommandDelivery<T> delivery,
-        Func<ICommandDelivery<T>, Task> next);
+        Func<ICommandDelivery<T>, Task> schedule);
 
     public delegate IDisposable CommandSubscribingMiddleware<T>(
-        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext,
-        Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> next);
+        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
+        Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> subscribe);
 
     public delegate Task<ICommandDeliveryResult> CommandReceivingMiddleware<T>(
         Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
         TimeSpan? timeout,
-        Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> next);
+        Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> receive);
 }
