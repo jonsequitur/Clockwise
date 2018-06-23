@@ -28,10 +28,35 @@ namespace Clockwise
         public ICommandReceiver<T> CommandReceiver<T>()
         {
             var receiver = Container.Resolve<ICommandReceiver<T>>();
-
-            if (Properties.TracingEnabled)
+            if (Properties.CircuitBreakerEnabled)
             {
-                receiver = receiver.Trace();
+                var circuitBreakerGenerator = Container.Resolve<Func<T, ICircuitBreaker>>();
+                var circuitBreaker = circuitBreakerGenerator?.Invoke(default);
+
+                if (circuitBreaker != null)
+                {
+                    receiver = receiver.UseMiddleware(receive: async (handle, timeout, next) =>
+                        {
+                            return await next(async delivery =>
+                            {
+                                if (circuitBreaker.StateDescriptor.State == CircuitBreakerState.Open)
+                                    return delivery.Retry(circuitBreaker.StateDescriptor.TimeToLive);
+
+                                var result = await handle(delivery);
+
+                                switch (result)
+                                {
+                                    case PauseDeliveryResult<T> pause:
+                                        circuitBreaker.SignalFailure(pause.PausePeriod);
+                                        break;
+                                }
+
+                                return result;
+
+                            }, timeout);
+                        },
+                        subscribe: (onNext, next) => next(onNext));
+                }
             }
 
             return receiver;

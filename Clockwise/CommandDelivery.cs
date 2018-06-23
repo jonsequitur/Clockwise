@@ -24,5 +24,11 @@ namespace Clockwise
                                          .RetryPolicy
                                          .RetryPeriodAfter(commandDelivery.NumberOfPreviousAttempts) ??
                                  throw new ArgumentException("No more retries available"));
+
+        public static PauseDeliveryResult<T> PauseAllDeliveriesFor<T>(this ICommandDelivery<T> commandDelivery,
+            TimeSpan pausePeriod) => new PauseDeliveryResult<T>(commandDelivery, pausePeriod);
+        
     }
+
+   
 }

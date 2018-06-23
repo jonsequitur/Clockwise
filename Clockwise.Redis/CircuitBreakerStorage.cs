@@ -1,0 +1,123 @@
+﻿using System;
+using System.Collections.Immutable;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
+using Pocket;
+using StackExchange.Redis;
+
+namespace Clockwise.Redis
+{
+    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage
+    {
+        private static readonly Logger Log = new Logger("CircuitBreakerStorage");
+        private readonly RedisChannel channel;
+        private ConnectionMultiplexer connection;
+        private readonly IDatabase db;
+        private readonly string key;
+        private ISubscriber subscriber;
+        private static readonly JsonSerializerSettings jsonSettings;
+        private CircuitBreakerStateDescriptor stateDescriptor;
+        private ImmutableList<IObserver<CircuitBreakerStateDescriptor>> observers;
+
+        static CircuitBreakerStorage()
+        {
+            jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+            jsonSettings.Converters.Add(new StringEnumConverter());
+            jsonSettings.NullValueHandling = NullValueHandling.Ignore;
+        }
+        public static CircuitBreakerStorage Create<T>(string connectionString, int dbId = -1)
+        {
+
+            return new CircuitBreakerStorage(connectionString, dbId, typeof(T));
+        }
+
+        private CircuitBreakerStorage(string connectionString, int dbId, Type commandType)
+        {
+            observers = ImmutableList<IObserver<CircuitBreakerStateDescriptor>>.Empty;
+            stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now());
+            connection = ConnectionMultiplexer.Connect(connectionString);
+            db = connection.GetDatabase(dbId);
+
+            key = $"{commandType.Name}.circuitBreaker";
+            var topic = $"{dbId}.{key}";
+
+            channel = new RedisChannel(topic, RedisChannel.PatternMode.Auto);
+            subscriber = connection.GetSubscriber();
+
+            subscriber.Subscribe(channel, OnStatusChange);
+        }
+
+
+
+        public async Task<CircuitBreakerStateDescriptor> GetStateAsync()
+        {
+            if (stateDescriptor == null)
+            {
+                stateDescriptor = await ReadDescriptor();
+            }
+
+            return stateDescriptor;
+        }
+
+        public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null)
+        {
+            var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
+            var json = JsonConvert.SerializeObject(desc, jsonSettings);
+
+
+            Log.Info("Setting circuitbreaker state to {state}", desc);
+            await db.StringSetAsync(key, json, expiry);
+            subscriber.Publish(channel, json, CommandFlags.HighPriority);
+        }
+
+        private async Task<CircuitBreakerStateDescriptor> ReadDescriptor()
+        {
+            var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed);
+            var src = await db.StringGetAsync(key);
+
+            if (!src.IsNullOrEmpty)
+            {
+                desc = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(src, jsonSettings);
+            }
+
+            return desc;
+        }
+
+        private void OnStatusChange(RedisChannel _, RedisValue value)
+        {
+            var newDescriptor = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(value, jsonSettings);
+
+            if (newDescriptor != stateDescriptor)
+            {
+                Log.Info("Received circuitbreaker state update to {state}", newDescriptor);
+
+
+                stateDescriptor = newDescriptor;
+
+                foreach (var observer in observers)
+                {
+                    observer.OnNext(stateDescriptor);
+                }
+            }
+        }
+        public void Dispose()
+        {
+            subscriber?.Unsubscribe(channel);
+            subscriber = null;
+            connection?.Dispose();
+            connection = null;
+        }
+
+        public IDisposable Subscribe(IObserver<CircuitBreakerStateDescriptor> observer)
+        {
+            if (observer == null) throw new ArgumentNullException(nameof(observer));
+
+            observer.OnNext(stateDescriptor);
+            observers = observers.Add(observer);
+            return Disposable.Create(() => { observers = observers.Remove(observer); });
+
+        }
+    }
+}
