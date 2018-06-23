@@ -80,6 +80,9 @@ namespace Clockwise
                                 case CommandDelivery.PauseDeliveryResult<TChannel> pause:
                                     await cb.SignalFailure();
                                     break;
+                                default:
+                                    await cb.SignalSuccess();
+                                    break;
                             }
 
                             return result1;
