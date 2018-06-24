@@ -7,9 +7,9 @@ using Xunit;
 
 namespace Clockwise.Tests
 {
-    public class ACICircuitBreaker : CircuitBreaker<ACICircuitBreaker>
+    public class ACICircuitBreaker : CircuitBreaker
     {
-        public ACICircuitBreaker(ICircuitBreakerStorage storage, Configuration pocketConfiguration = null) : base(storage, pocketConfiguration)
+        public ACICircuitBreaker(ICircuitBreakerStorage storage) : base(storage)
         {
         }
     }
@@ -37,8 +37,8 @@ namespace Clockwise.Tests
 
                 new Action(() =>
                 {
-                    cfg.CommandReceiver<int>().Subscribe(handler);
-                }).Should().Throw<CircuitBreakerException>();
+                    cfg.CommandReceiver<int>();
+                }).Should().Throw<ConfigurationException>();
             }
         }
 
@@ -53,8 +53,6 @@ namespace Clockwise.Tests
                     .UseDependency<ICircuitBreakerStorage>(type => new InMemoryCircuitBreakerStorage())
                     .UseInMemoryScheduling()
                    .UseCircuitbreakerFor<int, ACICircuitBreaker>();
-
-                
 
                 var handler = CommandHandler.Create<int>(delivery =>
                 {
@@ -91,7 +89,7 @@ namespace Clockwise.Tests
                 var processedLong = new List<long>();
                 var cfg = new Configuration();
                 cfg = cfg
-                    .UseDependency<ICircuitBreakerStorage>(type => new InMemoryCircuitBreakerStorage())
+                    .UseInMemeoryCircuitBreakerStorage()
                     .UseInMemoryScheduling()
                     .UseCircuitbreakerFor<int, ACICircuitBreaker>()
                     .UseCircuitbreakerFor<long, ACICircuitBreaker>();
@@ -119,8 +117,8 @@ namespace Clockwise.Tests
                 cfg.CommandReceiver<long>().Subscribe(longCommandHandler);
 
                 var intCommandscheduler = cfg.CommandScheduler<int>();
+                await intCommandscheduler.Schedule(11); // open circuit!
 
-                await intCommandscheduler.Schedule(11);
                 var longCommandScheduler = cfg.CommandScheduler<long>();
                 await longCommandScheduler.Schedule(1);
                 await longCommandScheduler.Schedule(2);
@@ -140,7 +138,7 @@ namespace Clockwise.Tests
                 {
                     if (delivery.Command > 10)
                     {
-                        await cb.SignalFailure();
+                        await cb.SignalFailure(20.Seconds());
                     }
                     else
                     {
@@ -174,7 +172,7 @@ namespace Clockwise.Tests
                 {
                     if (delivery.Command > 10)
                     {
-                       await cb.SignalFailure();
+                       await cb.SignalFailure(20.Seconds());
                     }
                     else
                     {
@@ -211,7 +209,7 @@ namespace Clockwise.Tests
             {
                 var cfg = new Configuration();
                 cfg.UseInMemoryScheduling();
-                var cb = new ACICircuitBreaker(new InMemoryCircuitBreakerStorage(),cfg);
+                var cb = new ACICircuitBreaker(new InMemoryCircuitBreakerStorage());
                 await cb.Open(9.Seconds());
                 cb.StateDescriptor.State.Should().Be(CircuitBreakerState.Open);
                 await clock.AdvanceBy(11.Seconds());

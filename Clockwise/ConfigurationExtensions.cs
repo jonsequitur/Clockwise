@@ -55,15 +55,15 @@ namespace Clockwise
         {
             configuration.Container.AfterCreating<ICommandReceiver<TChannel>>(receiver =>
             {
-
                 TCircuitBreaker cb = default;
                 try
                 {
                     cb = configuration.Container.Resolve<TCircuitBreaker>();
+                    
                 }
                 catch (Exception e)
                 {
-                    throw new CircuitBreakerException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}",e);
+                    throw new ConfigurationException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}",e);
                 }
 
                 async Task<ICommandDeliveryResult> ReceivingMiddleware(CommandHandler<TChannel> handlerDelegate, TimeSpan? timeout, Func<CommandHandler<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> next)
@@ -86,7 +86,7 @@ namespace Clockwise
                             switch (result1)
                             {
                                 case CommandDelivery.PauseDeliveryResult<TChannel> pause:
-                                    await cb.SignalFailure();
+                                    await cb.SignalFailure(pause.PausePeriod);
                                     break;
                                 default:
                                     await cb.SignalSuccess();
@@ -153,6 +153,12 @@ namespace Clockwise
             return configuration;
         }
 
+        public static Configuration UseInMemeoryCircuitBreakerStorage(this Configuration configuration)
+        {
+            configuration.Container.TryRegisterSingle<ICircuitBreakerStorage>(_ => new InMemoryCircuitBreakerStorage());
+
+            return configuration;
+        }
         public static Configuration UseInMemoryScheduling(
             this Configuration configuration)
         {

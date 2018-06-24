@@ -3,9 +3,8 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public interface ICircuitBreakerStorage : IObservable<CircuitBreakerStateDescriptor>, IDisposable
+    public interface ICircuitBreakerStorage : IObservable<CircuitBreakerStateDescriptor>
     {
-        Task<CircuitBreakerStateDescriptor> GetStateAsync();
         Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null);
     }
 }

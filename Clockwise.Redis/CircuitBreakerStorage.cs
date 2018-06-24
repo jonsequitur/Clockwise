@@ -9,7 +9,7 @@ using StackExchange.Redis;
 
 namespace Clockwise.Redis
 {
-    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage
+    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage, IDisposable
     {
         private static readonly Logger Log = new Logger("CircuitBreakerStorage");
         private readonly RedisChannel channel;
@@ -18,8 +18,7 @@ namespace Clockwise.Redis
         private readonly string key;
         private ISubscriber subscriber;
         private static readonly JsonSerializerSettings jsonSettings;
-        private CircuitBreakerStateDescriptor stateDescriptor;
-        private ImmutableList<IObserver<CircuitBreakerStateDescriptor>> observers;
+        private readonly ConcurrentSet <IObserver<CircuitBreakerStateDescriptor>> observers;
 
         static CircuitBreakerStorage()
         {
@@ -27,16 +26,10 @@ namespace Clockwise.Redis
             jsonSettings.Converters.Add(new StringEnumConverter());
             jsonSettings.NullValueHandling = NullValueHandling.Ignore;
         }
-        public static CircuitBreakerStorage Create<T>(string connectionString, int dbId = -1)
-        {
 
-            return new CircuitBreakerStorage(connectionString, dbId, typeof(T));
-        }
-
-        private CircuitBreakerStorage(string connectionString, int dbId, Type commandType)
+        public CircuitBreakerStorage(string connectionString, int dbId, Type commandType)
         {
-            observers = ImmutableList<IObserver<CircuitBreakerStateDescriptor>>.Empty;
-            stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now());
+            observers = new ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>>();
             connection = ConnectionMultiplexer.Connect(connectionString);
             db = connection.GetDatabase(dbId);
 
@@ -49,15 +42,9 @@ namespace Clockwise.Redis
             subscriber.Subscribe(channel, OnStatusChange);
         }
 
-
-
         public async Task<CircuitBreakerStateDescriptor> GetStateAsync()
         {
-            if (stateDescriptor == null)
-            {
-                stateDescriptor = await ReadDescriptor();
-            }
-
+            var stateDescriptor = await ReadDescriptor();
             return stateDescriptor;
         }
 
@@ -88,20 +75,12 @@ namespace Clockwise.Redis
         private void OnStatusChange(RedisChannel _, RedisValue value)
         {
             var newDescriptor = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(value, jsonSettings);
-
-            if (newDescriptor != stateDescriptor)
+            foreach (var observer in observers)
             {
-                Log.Info("Received circuitbreaker state update to {state}", newDescriptor);
-
-
-                stateDescriptor = newDescriptor;
-
-                foreach (var observer in observers)
-                {
-                    observer.OnNext(stateDescriptor);
-                }
+                observer.OnNext(newDescriptor);
             }
         }
+
         public void Dispose()
         {
             subscriber?.Unsubscribe(channel);
@@ -113,10 +92,8 @@ namespace Clockwise.Redis
         public IDisposable Subscribe(IObserver<CircuitBreakerStateDescriptor> observer)
         {
             if (observer == null) throw new ArgumentNullException(nameof(observer));
-
-            observer.OnNext(stateDescriptor);
-            observers = observers.Add(observer);
-            return Disposable.Create(() => { observers = observers.Remove(observer); });
+            observers.TryAdd(observer);
+            return Disposable.Create(() => { observers.TryRemove(observer); });
 
         }
     }
