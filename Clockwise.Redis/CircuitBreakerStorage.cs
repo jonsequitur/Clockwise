@@ -53,7 +53,7 @@ namespace Clockwise.Redis
             return JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, jsonSettings);
         }
 
-        public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null)
+        public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan expiry)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
             var json = JsonConvert.SerializeObject(desc, jsonSettings);
@@ -66,7 +66,7 @@ namespace Clockwise.Redis
 
         private async Task<CircuitBreakerStateDescriptor> ReadDescriptor()
         {
-            var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed);
+            var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Now(), TimeSpan.FromMinutes(1));
             var src = await db.StringGetAsync(key);
 
             if (!src.IsNullOrEmpty)

@@ -22,7 +22,7 @@ namespace Clockwise
 
         private CircuitBreakerStateDescriptor stateDescriptor;
 
-        private async Task SetState(CircuitBreakerState newState, TimeSpan? expiry = null)
+        private async Task SetState(CircuitBreakerState newState, TimeSpan expiry)
         {
             await storage.SetStateAsync(newState, expiry);
         }
@@ -42,7 +42,7 @@ namespace Clockwise
         {
             if (stateDescriptor.State == CircuitBreakerState.Open)
             {
-                await SetState(CircuitBreakerState.HalfOpen);
+                await SetState(CircuitBreakerState.HalfOpen, TimeSpan.FromMinutes(1));
             }
             else
             {
@@ -54,7 +54,7 @@ namespace Clockwise
         {
             if (stateDescriptor.State != CircuitBreakerState.Closed)
             {
-                await SetState(CircuitBreakerState.Closed);
+                await SetState(CircuitBreakerState.Closed, TimeSpan.FromMinutes(1));
             }
         }
 

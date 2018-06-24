@@ -28,7 +28,7 @@ namespace Clockwise
             }
         }
 
-        public static bool operator ==(CircuitBreakerStateDescriptor left, CircuitBreakerStateDescriptor right)
+        public static bool operator == (CircuitBreakerStateDescriptor left, CircuitBreakerStateDescriptor right)
         {
             return Equals(left, right);
         }
@@ -39,10 +39,10 @@ namespace Clockwise
         }
 
         public CircuitBreakerState State { get; }
-        public TimeSpan? TimeToLive { get; }
-        public DateTimeOffset? TimeStamp { get;  }
+        public TimeSpan TimeToLive { get; }
+        public DateTimeOffset TimeStamp { get;  }
 
-        public CircuitBreakerStateDescriptor(CircuitBreakerState state, DateTimeOffset? timeStamp = null, TimeSpan? timeToLive = null)
+        public CircuitBreakerStateDescriptor(CircuitBreakerState state, DateTimeOffset timeStamp, TimeSpan timeToLive)
         {
             State = state;
             TimeToLive = timeToLive;

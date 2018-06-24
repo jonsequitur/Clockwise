@@ -12,7 +12,7 @@ namespace Clockwise
         public InMemoryCircuitBreakerStorage()
         {
             observers = new ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>>();
-            stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now());
+            stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(), TimeSpan.FromMinutes(2));
         }
 
         public Task<CircuitBreakerStateDescriptor> GetStateAsync()
@@ -26,7 +26,7 @@ namespace Clockwise
             return stateDescriptor;
         }
 
-        public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null)
+        public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan expiry)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Current.Now(), expiry);
             if (desc != stateDescriptor)
