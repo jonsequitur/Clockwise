@@ -20,6 +20,12 @@ namespace Clockwise
             return Task.FromResult(stateDescriptor);
         }
 
+        public async Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
+        {
+            await Task.Yield();
+            return stateDescriptor;
+        }
+
         public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Current.Now(), expiry);
@@ -29,6 +35,7 @@ namespace Clockwise
                 foreach (var observer in observers) observer.OnNext(stateDescriptor);
             }
 
+            
             await Task.Yield();
         }
 

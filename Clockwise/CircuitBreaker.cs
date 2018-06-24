@@ -3,25 +3,7 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-   
-    public interface ICircuitBreaker
-    {
-        /// <summary>
-        /// Called to notify success.
-        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.HalfOpen"/> state
-        /// if the current state is <see cref="CircuitBreakerState.Open"/>,
-        /// otherwise will transition to <see cref="CircuitBreakerState.Closed"/> state.</remarks>
-        /// </summary>
-        Task SignalSuccess();
-        /// <summary>
-        /// Called to notify failure.
-        /// <remarks>Invoking this method will cause a transition to <see cref="CircuitBreakerState.Open" /> state.</remarks>
-        /// </summary>
-        /// <param name="expiry">The expiry.</param>
-        Task SignalFailure(TimeSpan expiry);
-    }
-
-    public abstract class CircuitBreaker: ICircuitBreaker, IDisposable, IObserver<CircuitBreakerStateDescriptor>
+    public abstract class CircuitBreaker:  IDisposable, IObserver<CircuitBreakerStateDescriptor>
     {
         private readonly ICircuitBreakerStorage storage;
         private IDisposable setStateSubscription;
@@ -74,6 +56,11 @@ namespace Clockwise
             {
                 await SetState(CircuitBreakerState.Closed);
             }
+        }
+
+        public Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
+        {
+            return storage.GetLastStateAsync();
         }
 
         public async Task SignalSuccess()

@@ -51,7 +51,7 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreakerFor<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : ICircuitBreaker
+        public static Configuration UseCircuitbreakerFor<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : CircuitBreaker
         {
             configuration.Container.AfterCreating<ICommandReceiver<TChannel>>(receiver =>
             {
@@ -80,7 +80,8 @@ namespace Clockwise
                     return subscribe(async delivery =>
                     {
                         {
-                            if (cb.StateDescriptor.State == CircuitBreakerState.Open) return delivery.Retry(cb.StateDescriptor.TimeToLive);
+                            var stateDescriptor = await cb.GetLastStateAsync();
+                            if ( stateDescriptor.State == CircuitBreakerState.Open) return delivery.Retry(stateDescriptor.TimeToLive);
 
                             var result1 = await handle(delivery);
                             switch (result1)

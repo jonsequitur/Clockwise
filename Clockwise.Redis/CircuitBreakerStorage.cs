@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -46,6 +45,12 @@ namespace Clockwise.Redis
         {
             var stateDescriptor = await ReadDescriptor();
             return stateDescriptor;
+        }
+
+        public async Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
+        {
+            var serialised = await db.StringGetAsync(key);
+            return JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, jsonSettings);
         }
 
         public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan? expiry = null)
