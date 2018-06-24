@@ -22,7 +22,7 @@ namespace Clockwise.AzureServiceBus
         }
 
         public async Task<ICommandDeliveryResult> Receive(
-            CommandHandler<T> handle,
+            HandleCommand<T> handle,
             TimeSpan? timeout = null)
         {
             var received = await messageReceiver.ReceiveAsync(
@@ -40,7 +40,7 @@ namespace Clockwise.AzureServiceBus
             return null;
         }
 
-        public IDisposable Subscribe(CommandHandler<T> handle)
+        public IDisposable Subscribe(HandleCommand<T> handle)
         {
             if (handle == null)
             {
@@ -73,7 +73,7 @@ namespace Clockwise.AzureServiceBus
         }
 
         private async Task<ICommandDeliveryResult> HandleMessage(
-            CommandHandler<T> onNext,
+            HandleCommand<T> onNext,
             Message message)
         {
             var commandDelivery = message.ToCommandDelivery<T>();

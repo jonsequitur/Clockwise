@@ -67,7 +67,7 @@ namespace Clockwise.AzureServiceBus.Tests
         }
 
         protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
-            CommandHandler
+            HandleCommand
                 .Create(handle)
                 .RetryOnException()
                 .Trace();

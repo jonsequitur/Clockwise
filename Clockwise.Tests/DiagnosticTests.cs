@@ -66,11 +66,11 @@ namespace Clockwise.Tests
             await Clock.Current.Wait(1.Seconds());
 
             log.Should()
-               .ContainSingle(e => e.Category == "CommandHandler<CreateCommandTarget>" &&
+               .ContainSingle(e => e.Category == "HandleCommand<CreateCommandTarget>" &&
                                    e.OperationName == "Handle" &&
                                    e.Operation.IsStart);
             log.Should()
-               .ContainSingle(e => e.Category == "CommandHandler<CreateCommandTarget>" &&
+               .ContainSingle(e => e.Category == "HandleCommand<CreateCommandTarget>" &&
                                    e.OperationName == "Handle" &&
                                    e.Operation.IsEnd);
         }
@@ -80,7 +80,7 @@ namespace Clockwise.Tests
         {
             configuration.TraceCommands();
 
-            var handler = CommandHandler.Create<string>(delivery =>
+            var handler = HandleCommand.Create<string>(delivery =>
             {
                 Console.WriteLine("here i am");
             });
@@ -104,7 +104,7 @@ namespace Clockwise.Tests
         {
             configuration.TraceCommands();
 
-            var handler = CommandHandler.Create<string>(delivery =>
+            var handler = HandleCommand.Create<string>(delivery =>
             {
                 Console.WriteLine("here i am");
             });
@@ -130,7 +130,7 @@ namespace Clockwise.Tests
         {
             configuration.TraceCommands();
 
-            var handler = CommandHandler.Create<string>(delivery =>
+            var handler = HandleCommand.Create<string>(delivery =>
             {
             });
 
@@ -193,7 +193,7 @@ namespace Clockwise.Tests
 
             var command = new CreateCommandTarget("the-id");
 
-            var handler = CommandHandler.Create<CreateCommandTarget>(d => d.Complete());
+            var handler = HandleCommand.Create<CreateCommandTarget>(d => d.Complete());
 
             var delivery = new CommandDelivery<CreateCommandTarget>(
                 command,
@@ -239,7 +239,7 @@ namespace Clockwise.Tests
             // arrange
             var dueTime = DateTimeOffset.Parse("2086-12-05", CultureInfo.InvariantCulture);
 
-            var handler = CommandHandler.Create<CreateCommandTarget>(d => d.Complete()).Trace();
+            var handler = HandleCommand.Create<CreateCommandTarget>(d => d.Complete()).Trace();
 
             var command = new CreateCommandTarget("the-id");
 
@@ -258,7 +258,7 @@ namespace Clockwise.Tests
             logEvent
                 .Category
                 .Should()
-                .Be("CommandHandler<CreateCommandTarget>",
+                .Be("HandleCommand<CreateCommandTarget>",
                     "we're verifying that we have the right log event");
 
             var properties = logEvent

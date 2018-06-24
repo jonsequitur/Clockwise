@@ -10,14 +10,14 @@ namespace Clockwise
     /// <seealso cref="Clockwise.ICommandHandler{T}" />
     internal class AnonymousCommandHandler<T> : ICommandHandler<T>
     {
-        private readonly CommandHandler<T> handle;
+        private readonly HandleCommand<T> handle;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AnonymousCommandHandler{T}"/> class.
         /// </summary>
         /// <param name="handle">The handle.</param>
         /// <exception cref="ArgumentNullException">handle</exception>
-        public AnonymousCommandHandler(CommandHandler<T> handle) =>
+        public AnonymousCommandHandler(HandleCommand<T> handle) =>
             this.handle = handle ?? throw new ArgumentNullException(nameof(handle));
 
         /// <summary>

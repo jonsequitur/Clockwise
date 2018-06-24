@@ -6,10 +6,10 @@ namespace Clockwise
     public interface ICommandReceiver<out T>
     {
         IDisposable Subscribe(
-            CommandHandler<T> handle);
+            HandleCommand<T> handle);
 
         Task<ICommandDeliveryResult> Receive(
-            CommandHandler<T> handle,
+            HandleCommand<T> handle,
             TimeSpan? timeout = null);
     }
 }

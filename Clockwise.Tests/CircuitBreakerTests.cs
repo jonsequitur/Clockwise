@@ -25,7 +25,7 @@ namespace Clockwise.Tests
                     .UseCircuitbreakerFor<int, ACICircuitBreaker>();
 
 
-                var handler = CommandHandler.Create<int>(delivery =>
+                var handler = HandleCommand.Create<int>(delivery =>
                 {
                     if (delivery.Command > 10)
                     {
@@ -54,7 +54,7 @@ namespace Clockwise.Tests
                     .UseInMemoryScheduling()
                    .UseCircuitbreakerFor<int, ACICircuitBreaker>();
 
-                var handler = CommandHandler.Create<int>(delivery =>
+                var handler = HandleCommand.Create<int>(delivery =>
                 {
                     if (delivery.Command > 10)
                     {
@@ -96,7 +96,7 @@ namespace Clockwise.Tests
 
 
 
-                var intCommandHandler = CommandHandler.Create<int>(delivery =>
+                var intCommandHandler = HandleCommand.Create<int>(delivery =>
                 {
                     if (delivery.Command > 10)
                     {
@@ -107,7 +107,7 @@ namespace Clockwise.Tests
                     return delivery.Complete();
                 });
 
-                var longCommandHandler = CommandHandler.Create<long>(delivery =>
+                var longCommandHandler = HandleCommand.Create<long>(delivery =>
                 {
                     processedLong.Add(delivery.Command);
                     return delivery.Complete();

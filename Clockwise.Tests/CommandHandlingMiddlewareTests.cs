@@ -13,7 +13,7 @@ namespace Clockwise.Tests
         [Fact]
         public async Task Middleware_can_be_used_to_log_commands_as_they_are_delivered()
         {
-            var handler = CommandHandler.Create<object>(delivery =>
+            var handler = HandleCommand.Create<object>(delivery =>
                                         {
                                         })
                                         .UseMiddleware(async (delivery, next) =>

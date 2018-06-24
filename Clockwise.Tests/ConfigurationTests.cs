@@ -177,7 +177,7 @@ namespace Clockwise.Tests
                         await configuration.CommandScheduler<string>().Schedule(c.Now().ToString());
                     }, () => 1.Seconds());
 
-                    var handler = CommandHandler.Create<string>(delivery =>
+                    var handler = HandleCommand.Create<string>(delivery =>
                     {
                     });
 
@@ -224,10 +224,10 @@ namespace Clockwise.Tests
 
         private class FakeReceiver<T> : ICommandReceiver<T>
         {
-            public IDisposable Subscribe(CommandHandler<T> handle) =>
+            public IDisposable Subscribe(HandleCommand<T> handle) =>
                 throw new NotImplementedException();
 
-            public Task<ICommandDeliveryResult> Receive(CommandHandler<T> handle, TimeSpan? timeout = null) =>
+            public Task<ICommandDeliveryResult> Receive(HandleCommand<T> handle, TimeSpan? timeout = null) =>
                 throw new NotImplementedException();
         }
     }

@@ -13,8 +13,8 @@ namespace Clockwise
         /// <param name="subscribe">The subscribe.</param>
         /// <returns></returns>
         internal static ICommandReceiver<T> Create<T>(
-            Func<CommandHandler<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
-            Func<CommandHandler<T>, IDisposable> subscribe) =>
+            Func<HandleCommand<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
+            Func<HandleCommand<T>, IDisposable> subscribe) =>
             new AnonymousCommandReceiver<T>(receive, subscribe);
 
         public static async Task<ICommandDeliveryResult> Receive<T>(

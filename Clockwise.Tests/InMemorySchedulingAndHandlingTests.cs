@@ -45,7 +45,7 @@ namespace Clockwise.Tests
                     .Subscribe(CreateHandler(handle)));
 
         protected override ICommandHandler<T> CreateHandler<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
-            CommandHandler
+            HandleCommand
                 .Create(handle)
                 .RetryOnException()
                 .Trace();

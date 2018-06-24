@@ -20,7 +20,7 @@ namespace Clockwise
     {
         private readonly VirtualClock clock;
 
-        private readonly List<CommandHandler<T>> subscribers = new List<CommandHandler<T>>();
+        private readonly List<HandleCommand<T>> subscribers = new List<HandleCommand<T>>();
 
         private readonly ConcurrentDictionary<string, ICommandDelivery<T>> pendingDeliveries = new ConcurrentDictionary<string, ICommandDelivery<T>>();
 
@@ -64,7 +64,7 @@ namespace Clockwise
         /// <param name="timeout">The timeout.</param>
         /// <returns></returns>
         public async Task<ICommandDeliveryResult> Receive(
-            CommandHandler<T> handle,
+            HandleCommand<T> handle,
             TimeSpan? timeout = null)
         {
             timeout = timeout ??
@@ -97,7 +97,7 @@ namespace Clockwise
             return result;
         }
 
-        public IDisposable Subscribe(CommandHandler<T> handle)
+        public IDisposable Subscribe(HandleCommand<T> handle)
         {
             lock (subscribers)
             {
@@ -151,9 +151,9 @@ namespace Clockwise
             }
         }
 
-        private CommandHandler<T>[] GetReceivers()
+        private HandleCommand<T>[] GetReceivers()
         {
-            CommandHandler<T>[] receivers;
+            HandleCommand<T>[] receivers;
 
             lock (subscribers)
             {

@@ -6,7 +6,7 @@ namespace Clockwise
     {
         private static class Category<T>
         {
-            public static readonly string Handler = $"{nameof(CommandHandler)}<{typeof(T).Name}>";
+            public static readonly string Handler = $"{nameof(HandleCommand)}<{typeof(T).Name}>";
             public static readonly string Receiver = $"{nameof(CommandReceiver)}<{typeof(T).Name}>";
             public static readonly string Scheduler = $"{nameof(CommandScheduler)}<{typeof(T).Name}>";
         }
