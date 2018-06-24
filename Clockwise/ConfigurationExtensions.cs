@@ -55,7 +55,7 @@ namespace Clockwise
         {
             configuration.Container.AfterCreating<ICommandReceiver<TChannel>>(receiver =>
             {
-                TCircuitBreaker cb = default;
+                TCircuitBreaker cb;
                 try
                 {
                     cb = configuration.Container.Resolve<TCircuitBreaker>();
