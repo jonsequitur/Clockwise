@@ -1,11 +1,17 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Clockwise
 {
     public static class CommandReceiver
     {
+        /// <summary>
+        /// Creates the an instance of <see cref="ICommandReceiver{T}"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="receive">The receive.</param>
+        /// <param name="subscribe">The subscribe.</param>
+        /// <returns></returns>
         internal static ICommandReceiver<T> Create<T>(
             Func<CommandHandler<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
             Func<CommandHandler<T>, IDisposable> subscribe) =>
@@ -59,40 +65,46 @@ namespace Clockwise
             return receiver.Subscribe(OnNext);
         }
 
+        /// <summary>
+        /// Enables tracing on the specified <see cref="ICommandReceiver{T}"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="receiver">The receiver.</param>
+        /// <returns></returns>
         public static ICommandReceiver<T> Trace<T>(
-            this ICommandReceiver<T> receiver) =>
-            receiver.UseMiddleware(
-                receive: async (handle, timeout, next) =>
-                {
-                    return await next(async delivery =>
-                    {
-                        using (var operation = Log.Receive(delivery))
+                    this ICommandReceiver<T> receiver) =>
+                    receiver.UseMiddleware(
+                        receive: async (handle, timeout, next) =>
                         {
-                            var result = await handle(delivery);
-
-                            Log.Completion(operation, delivery, result);
-
-                            return result;
-                        }
-                    }, timeout);
-                },
-                subscribe: (onNext, next) =>
-                {
-                    using (Log.Subscribe<T>())
-                    {
-                        return next(async delivery =>
-                        {
-                            using (var operation1 = Log.Receive(delivery))
+                            return await next(async delivery =>
                             {
-                                var result1 = await onNext(delivery);
+                                using (var operation = Log.Receive(delivery))
+                                {
+                                    var result = await handle(delivery);
 
-                                Log.Completion(operation1, delivery, result1);
+                                    Log.Completion(operation, delivery, result);
 
-                                return result1;
+                                    return result;
+                                }
+                            }, timeout);
+                        },
+                        subscribe: (onNext, next) =>
+                        {
+                            using (Log.Subscribe<T>())
+                            {
+                                return next(async delivery =>
+                                {
+                                    using (var operation1 = Log.Receive(delivery))
+                                    {
+                                        var result1 = await onNext(delivery);
+
+                                        Log.Completion(operation1, delivery, result1);
+
+                                        return result1;
+                                    }
+                                });
                             }
                         });
-                    }
-                });
 
         public static ICommandReceiver<T> UseMiddleware<T>(
             this ICommandReceiver<T> receiver,

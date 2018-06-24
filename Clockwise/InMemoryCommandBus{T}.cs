@@ -6,6 +6,13 @@ using Pocket;
 
 namespace Clockwise
 {
+    /// <summary>
+    /// An in memory implementation.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <seealso cref="Clockwise.ICommandReceiver{T}" />
+    /// <seealso cref="Clockwise.ICommandScheduler{T}" />
+    /// <seealso cref="System.IDisposable" />
     public class InMemoryCommandBus<T> :
         ICommandReceiver<T>,
         ICommandScheduler<T>,
@@ -21,11 +28,20 @@ namespace Clockwise
 
         private bool isDisposed;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InMemoryCommandBus{T}"/> class.
+        /// </summary>
+        /// <param name="clock">The clock.</param>
         public InMemoryCommandBus(VirtualClock clock)
         {
             this.clock = clock;
         }
 
+        /// <summary>
+        /// Schedules the specified item.
+        /// </summary>
+        /// <param name="item">The item.</param>
+        /// <returns></returns>
         public async Task Schedule(ICommandDelivery<T> item)
         {
             await Task.Yield();
@@ -41,6 +57,12 @@ namespace Clockwise
                            after: item.DueTime);
         }
 
+        /// <summary>
+        /// Receives the specified handle.
+        /// </summary>
+        /// <param name="handle">The handle.</param>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns></returns>
         public async Task<ICommandDeliveryResult> Receive(
             CommandHandler<T> handle,
             TimeSpan? timeout = null)
