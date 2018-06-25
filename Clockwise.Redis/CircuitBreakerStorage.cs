@@ -26,13 +26,13 @@ namespace Clockwise.Redis
             jsonSettings.NullValueHandling = NullValueHandling.Ignore;
         }
 
-        public CircuitBreakerStorage(string connectionString, int dbId, Type commandType)
+        public CircuitBreakerStorage(string connectionString, int dbId, Type resourceType)
         {
             observers = new ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>>();
             connection = ConnectionMultiplexer.Connect(connectionString);
             db = connection.GetDatabase(dbId);
-
-            key = $"{commandType.Name}.circuitBreaker";
+         
+                        key = $"{resourceType.Name}.circuitBreaker";
             var topic = $"{dbId}.{key}";
 
             channel = new RedisChannel(topic, RedisChannel.PatternMode.Auto);
