@@ -86,7 +86,7 @@ namespace Clockwise
                             var result1 = await handle(delivery);
                             switch (result1)
                             {
-                                case CommandDelivery.PauseDeliveryResult<TChannel> pause:
+                                case PauseDeliveryResult<TChannel> pause:
                                     await cb.SignalFailure(pause.PausePeriod);
                                     break;
                                 default:

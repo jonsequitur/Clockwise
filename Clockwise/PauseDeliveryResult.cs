@@ -2,16 +2,13 @@
 
 namespace Clockwise
 {
-    public static partial class CommandDelivery
+    public class PauseDeliveryResult<T> : CommandDeliveryResult<T>
     {
-        public class PauseDeliveryResult<T> : CommandDeliveryResult<T>
-        {
-            public TimeSpan PausePeriod { get; }
+        public TimeSpan PausePeriod { get; }
 
-            public PauseDeliveryResult(ICommandDelivery<T> delivery, TimeSpan pausePeriod) : base(delivery)
-            {
-                PausePeriod = pausePeriod;
-            }
+        public PauseDeliveryResult(ICommandDelivery<T> delivery, TimeSpan pausePeriod) : base(delivery)
+        {
+            PausePeriod = pausePeriod;
         }
     }
 }
