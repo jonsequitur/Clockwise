@@ -21,6 +21,17 @@ namespace Clockwise.Redis.Tests
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 
+        [Fact]
+        public async Task When_open_state_expires_it_is_set_to_half_open()
+        {
+            var cb01 = new CircuitBreakerStorage("127.0.0.1", 0, typeof(string));
+            await cb01.Initialise();
+            await cb01.SignalFailure(TimeSpan.FromSeconds(1));
+            await Task.Delay(3000);
+            var stateDescriptor = await cb01.GetLastStateAsync();
+            stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
+        }
+
         public void Dispose()
         {
           var connection =  ConnectionMultiplexer.Connect("127.0.0.1");

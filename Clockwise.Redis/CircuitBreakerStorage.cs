@@ -60,8 +60,8 @@ namespace Clockwise.Redis
             {
                 var newState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(),
                     TimeSpan.FromMinutes(1));
-                lastSerialisedState = await TransistionStatus(lastSerialisedState,
-                    JsonConvert.SerializeObject(newState, jsonSettings));
+                lastSerialisedState = await Transistion(lastSerialisedState,
+                    JsonConvert.SerializeObject(newState, jsonSettings), null);
             }
 
             return TryDeserialise(lastSerialisedState);
@@ -74,9 +74,21 @@ namespace Clockwise.Redis
                 : JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, jsonSettings);
         }
 
-        public async Task<string> TransistionStatus(string fromState, string toState)
+        public async Task SignalFailure(TimeSpan expiry)
         {
-            var script = $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then redis.call(\'set\',\'{key}\',\'{toState}\') return \'{toState}\' else return prev end";
+            var openState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Open, Clock.Current.Now(), expiry);
+            await TransitionStateTo( openState, expiry);
+        }
+
+        public async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry)
+        {
+            var serialsied = JsonConvert.SerializeObject(targetState, jsonSettings);
+            await Transistion(lastSerialisedState, serialsied, expiry);
+        }
+        public async Task<string> Transistion(string fromState, string toState, TimeSpan? newStateExpiry)
+        {
+            var setCommand = newStateExpiry == null ? $"redis.call(\'set\',\'{key}\',\'{toState}\')" : $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
+            var script = $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then {setCommand} return \'{toState}\' else return prev end";
             var execution = (await db.ScriptEvaluateAsync(script))?.ToString();
             return execution;
         }
@@ -86,7 +98,7 @@ namespace Clockwise.Redis
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
             var json = JsonConvert.SerializeObject(desc, jsonSettings);
             Log.Info("Setting circuitbreaker state to {state} from {previous}", desc, lastSerialisedState ?? string.Empty);
-            await TransistionStatus(lastSerialisedState, json);
+            await Transistion(lastSerialisedState, json, newState == CircuitBreakerState.Open ? (TimeSpan?)expiry : null);
         }
 
         private async Task<CircuitBreakerStateDescriptor> ReadDescriptor()
@@ -135,13 +147,27 @@ namespace Clockwise.Redis
 
         void IObserver<(string key, string operation)>.OnNext((string key, string operation) value)
         {
-            ReadDescriptor().ContinueWith(task =>
+            switch (value.operation)
             {
-                var desc = task.Result;
-                stateDescriptor = desc;
-                lastSerialisedState = JsonConvert.SerializeObject(stateDescriptor, jsonSettings);
-                foreach (var observer in observers) observer.OnNext(desc);
-            });
+                case "expired":
+                {
+                    Transistion(null,
+                        JsonConvert.SerializeObject(
+                            new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now(),
+                                TimeSpan.FromMinutes(1)), jsonSettings), null);
+                }
+                    break;
+                default:
+                    ReadDescriptor().ContinueWith(task =>
+                    {
+                        var desc = task.Result;
+                        stateDescriptor = desc;
+                        lastSerialisedState = JsonConvert.SerializeObject(stateDescriptor, jsonSettings);
+                        foreach (var observer in observers) observer.OnNext(desc);
+                    });
+                    break;
+            }
+          
         }
     }
 }

@@ -40,9 +40,10 @@ namespace Clockwise.Redis
         {
             var index = channel.IndexOf(':');
             if (index >= 0 && index < channel.Length - 1)
+            {
                 return channel.Substring(index + 1);
+            }
 
-            //we didn't find the delimiter, so just return the whole thing
             return channel;
         }
         public void Dispose()
