@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Pocket;
 using StackExchange.Redis;
 
@@ -18,9 +19,9 @@ namespace Clockwise.Redis
            
         }
 
-        public void Initialise()
+        public async Task Initialise()
         {
-            subscriber.Subscribe(notificationChannel, Handler);
+            await subscriber.SubscribeAsync(notificationChannel, Handler);
         }
 
 

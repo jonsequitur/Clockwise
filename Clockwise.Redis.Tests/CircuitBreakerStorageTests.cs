@@ -12,9 +12,9 @@ namespace Clockwise.Redis.Tests
         public async Task SingalingState()
         {
             var cb01 = new CircuitBreakerStorage("127.0.0.1", 0,typeof(string));
-            cb01.Initialise();
+            await cb01.Initialise();
             var stateDescriptor = await cb01.GetLastStateAsync();
-            stateDescriptor.Should().BeNull();
+            stateDescriptor.Should().NotBeNull();
             await cb01.SetStateAsync(CircuitBreakerState.HalfOpen, TimeSpan.FromMinutes(1));
             await Task.Delay(1000);
             stateDescriptor = await cb01.GetLastStateAsync();
