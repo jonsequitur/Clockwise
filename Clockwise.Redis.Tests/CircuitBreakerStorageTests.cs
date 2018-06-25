@@ -11,12 +11,13 @@ namespace Clockwise.Redis.Tests
         [Fact]
         public async Task SingalingState()
         {
-            var cb01 = new CircuitBreakerStorage("127.0.0.1", -1,typeof(string));
-            var stateDescriptor = await cb01.GetStateAsync();
-            stateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
+            var cb01 = new CircuitBreakerStorage("127.0.0.1", 0,typeof(string));
+            cb01.Initialise();
+            var stateDescriptor = await cb01.GetLastStateAsync();
+            stateDescriptor.Should().BeNull();
             await cb01.SetStateAsync(CircuitBreakerState.HalfOpen, TimeSpan.FromMinutes(1));
             await Task.Delay(1000);
-            stateDescriptor = await cb01.GetStateAsync();
+            stateDescriptor = await cb01.GetLastStateAsync();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 

@@ -15,8 +15,14 @@ namespace Clockwise.Redis
             observers = new ConcurrentSet<IObserver<(string key, string operation)>>();
             var keyToSubscribe = string.IsNullOrWhiteSpace(key) ? "*" : key;
             notificationChannel = $"__keyspace@{dbId}__:{keyToSubscribe}";
+           
+        }
+
+        public void Initialise()
+        {
             subscriber.Subscribe(notificationChannel, Handler);
         }
+
 
         private void Handler(RedisChannel channel, RedisValue notificationType)
         {

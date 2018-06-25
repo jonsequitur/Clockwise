@@ -8,16 +8,24 @@ using StackExchange.Redis;
 
 namespace Clockwise.Redis
 {
-    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage, IDisposable
+    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage, IDisposable, IObserver<(string key, string operation)>
     {
+        private readonly string connectionString;
+        private readonly int dbId;
         private static readonly Logger Log = new Logger("CircuitBreakerStorage");
-        private readonly RedisChannel channel;
+
         private ConnectionMultiplexer connection;
-        private readonly IDatabase db;
+        private  IDatabase db;
         private readonly string key;
         private ISubscriber subscriber;
         private static readonly JsonSerializerSettings jsonSettings;
-        private readonly ConcurrentSet <IObserver<CircuitBreakerStateDescriptor>> observers;
+        private readonly ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>> observers;
+        private KeySapceObserver keySapceObserver;
+        private IDisposable keySpaceSubscription;
+        private CircuitBreakerStateDescriptor stateDescriptor;
+            
+
+        private string lastSerialisedState;
 
         static CircuitBreakerStorage()
         {
@@ -28,40 +36,47 @@ namespace Clockwise.Redis
 
         public CircuitBreakerStorage(string connectionString, int dbId, Type resourceType)
         {
+            this.connectionString = connectionString;
+            this.dbId = dbId;
             observers = new ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>>();
+
+
+            key = $"{resourceType.Name}.circuitBreaker";
+        }
+
+        public async Task Initialise()
+        {
             connection = ConnectionMultiplexer.Connect(connectionString);
             db = connection.GetDatabase(dbId);
-         
-                        key = $"{resourceType.Name}.circuitBreaker";
-            var topic = $"{dbId}.{key}";
-
-            channel = new RedisChannel(topic, RedisChannel.PatternMode.Auto);
             subscriber = connection.GetSubscriber();
-
-            subscriber.Subscribe(channel, OnStatusChange);
+            keySapceObserver = new KeySapceObserver(dbId, key, subscriber);
+            keySpaceSubscription = keySapceObserver.Subscribe(this);
         }
-
-        public async Task<CircuitBreakerStateDescriptor> GetStateAsync()
-        {
-            var stateDescriptor = await ReadDescriptor();
-            return stateDescriptor;
-        }
-
+        
         public async Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
         {
             var serialised = await db.StringGetAsync(key);
-            return JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, jsonSettings);
+            lastSerialisedState = serialised.HasValue ? serialised.ToString() : string.Empty;
+            if (string.IsNullOrWhiteSpace(serialised))
+            {
+                var newState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed,Clock.Current.Now(), TimeSpan.FromMinutes(1));
+                await TransistionStatus(lastSerialisedState, JsonConvert.SerializeObject(newState, jsonSettings));
+            }
+            return string.IsNullOrWhiteSpace(lastSerialisedState) ? null :  JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, jsonSettings);
         }
 
+        public async Task TransistionStatus(string fromState, string toState)
+        {
+            var script =
+                $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then redis.call(\'set\',\'{key}\',\'{toState}\') return \'{toState}\' else return prev end";
+           var result = await db.ScriptEvaluateAsync(script);
+        }
         public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan expiry)
         {
             var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
             var json = JsonConvert.SerializeObject(desc, jsonSettings);
-
-
-            Log.Info("Setting circuitbreaker state to {state}", desc);
+            Log.Info("Setting circuitbreaker state to {state} from {previous}", desc, lastSerialisedState ?? string.Empty);
             await db.StringSetAsync(key, json, expiry);
-            subscriber.Publish(channel, json, CommandFlags.HighPriority);
         }
 
         private async Task<CircuitBreakerStateDescriptor> ReadDescriptor()
@@ -76,20 +91,15 @@ namespace Clockwise.Redis
 
             return desc;
         }
-
-        private void OnStatusChange(RedisChannel _, RedisValue value)
-        {
-            var newDescriptor = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(value, jsonSettings);
-            foreach (var observer in observers)
-            {
-                observer.OnNext(newDescriptor);
-            }
-        }
-
         public void Dispose()
         {
-            subscriber?.Unsubscribe(channel);
+
+            keySpaceSubscription?.Dispose();
+            keySpaceSubscription = null;
+
             subscriber = null;
+
+            keySapceObserver?.Dispose();
             connection?.Dispose();
             connection = null;
         }
@@ -99,6 +109,32 @@ namespace Clockwise.Redis
             if (observer == null) throw new ArgumentNullException(nameof(observer));
             observers.TryAdd(observer);
             return Disposable.Create(() => { observers.TryRemove(observer); });
+
+        }
+
+        void IObserver<(string key, string operation)>.OnCompleted()
+        {
+            keySpaceSubscription?.Dispose();
+            keySpaceSubscription = null;
+        }
+
+        void IObserver<(string key, string operation)>.OnError(Exception error)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IObserver<(string key, string operation)>.OnNext((string key, string operation) value)
+        {
+            ReadDescriptor().ContinueWith(task =>
+            {
+
+                var desc = task.Result;
+                stateDescriptor = desc;
+                foreach (var observer in observers)
+                {
+                    observer.OnNext(desc);
+                }
+            });
 
         }
     }
