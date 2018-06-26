@@ -5,12 +5,12 @@ using StackExchange.Redis;
 
 namespace Clockwise.Redis
 {
-    public sealed class KeySapceObserver : IObservable<(string key, string operation)>, IDisposable
+    public sealed class KeySpaceObserver : IObservable<(string key, string operation)>, IDisposable
     {
         private readonly ISubscriber subscriber;
         private readonly string notificationChannel;
         private readonly ConcurrentSet<IObserver<(string key, string operation)>> observers;
-        public KeySapceObserver(int dbId, string key,  ISubscriber subscriber)
+        public KeySpaceObserver(int dbId, string key,  ISubscriber subscriber)
         {
             this.subscriber = subscriber;
             observers = new ConcurrentSet<IObserver<(string key, string operation)>>();

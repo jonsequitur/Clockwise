@@ -18,7 +18,7 @@ namespace Clockwise.Redis
         private readonly string key;
         private readonly int dbId;
         private readonly IDatabase db;
-        private KeySapceObserver keySapceObserver;
+        private KeySpaceObserver keySpaceObserver;
         private IDisposable keySpaceSubscription;
 
         static CircuitBreakerStoragePartition()
@@ -110,9 +110,9 @@ namespace Clockwise.Redis
         public async Task Initialise(ISubscriber subscriber)
         {
    
-            keySapceObserver = new KeySapceObserver(dbId, key, subscriber);
-            keySpaceSubscription = keySapceObserver.Subscribe(this);
-            await keySapceObserver.Initialise();
+            keySpaceObserver = new KeySpaceObserver(dbId, key, subscriber);
+            keySpaceSubscription = keySpaceObserver.Subscribe(this);
+            await keySpaceObserver.Initialise();
         }
         void IObserver<(string key, string operation)>.OnCompleted()
         {
@@ -154,8 +154,8 @@ namespace Clockwise.Redis
             keySpaceSubscription?.Dispose();
             keySpaceSubscription = null;
 
-            keySapceObserver?.Dispose();
-            keySapceObserver = null;
+            keySpaceObserver?.Dispose();
+            keySpaceObserver = null;
         }
 
         public IDisposable Subscribe(IObserver<CircuitBreakerStateDescriptor> observer)
