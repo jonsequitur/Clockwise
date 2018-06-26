@@ -9,16 +9,16 @@ namespace Clockwise.Redis.Tests
     public class CircuitBreakerStorageTests : IDisposable
     {
         [Fact]
-        public async Task SingalingState()
+        public async Task When_signaling_failure_then_state_is_open()
         {
             var cb01 = new CircuitBreakerStorage("127.0.0.1", 0,typeof(string));
             await cb01.Initialise();
             var stateDescriptor = await cb01.GetLastStateAsync();
             stateDescriptor.Should().NotBeNull();
-            await cb01.SetStateAsync(CircuitBreakerState.HalfOpen, TimeSpan.FromMinutes(1));
+            await cb01.SignalFailureAsync(TimeSpan.FromSeconds(2));
             await Task.Delay(1000);
             stateDescriptor = await cb01.GetLastStateAsync();
-            stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
+            stateDescriptor.State.Should().Be(CircuitBreakerState.Open);
         }
 
         [Fact]
@@ -26,7 +26,7 @@ namespace Clockwise.Redis.Tests
         {
             var cb01 = new CircuitBreakerStorage("127.0.0.1", 0, typeof(string));
             await cb01.Initialise();
-            await cb01.SignalFailure(TimeSpan.FromSeconds(1));
+            await cb01.SignalFailureAsync(TimeSpan.FromSeconds(1));
             await Task.Delay(3000);
             var stateDescriptor = await cb01.GetLastStateAsync();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);

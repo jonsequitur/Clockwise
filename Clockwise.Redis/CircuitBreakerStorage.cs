@@ -74,18 +74,32 @@ namespace Clockwise.Redis
                 : JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, jsonSettings);
         }
 
-        public async Task SignalFailure(TimeSpan expiry)
+        public async Task SignalFailureAsync(TimeSpan expiry)
         {
             var openState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Open, Clock.Current.Now(), expiry);
             await TransitionStateTo( openState, expiry);
         }
 
-        public async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry)
+        public async Task SignalSuccessAsync()
+        {
+            var target = CircuitBreakerState.Open;
+            if (stateDescriptor?.State == CircuitBreakerState.Open)
+            {
+                target = CircuitBreakerState.HalfOpen;
+            }
+            var targetState = new CircuitBreakerStateDescriptor(target, Clock.Current.Now());
+            await TransitionStateTo(targetState);
+        }
+
+        public async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry = null)
         {
             var serialsied = JsonConvert.SerializeObject(targetState, jsonSettings);
-            await Transistion(lastSerialisedState, serialsied, expiry);
+            var stateExpiry = targetState.State == CircuitBreakerState.Open && expiry == null
+                ? TimeSpan.FromMinutes(1)
+                : expiry;
+            await Transistion(lastSerialisedState, serialsied, stateExpiry);
         }
-        public async Task<string> Transistion(string fromState, string toState, TimeSpan? newStateExpiry)
+        private async Task<string> Transistion(string fromState, string toState, TimeSpan? newStateExpiry = null)
         {
             var setCommand = newStateExpiry == null ? $"redis.call(\'set\',\'{key}\',\'{toState}\')" : $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
             var script = $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then {setCommand} return \'{toState}\' else return prev end";
@@ -151,10 +165,10 @@ namespace Clockwise.Redis
             {
                 case "expired":
                 {
-                    Transistion(null,
-                        JsonConvert.SerializeObject(
-                            new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now(),
-                                TimeSpan.FromMinutes(1)), jsonSettings), null);
+                    Transistion(
+                        null,
+                        JsonConvert.SerializeObject(new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now()), jsonSettings))
+                        .Wait();
                 }
                     break;
                 default:
