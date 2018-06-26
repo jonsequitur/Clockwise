@@ -74,7 +74,7 @@ namespace Clockwise.Tests
                 await scheduler.Schedule(11);
                 await scheduler.Schedule(3);
 
-                await clock.AdvanceBy(10.Minutes());
+                await clock.AdvanceBy(3.Minutes());
 
                 processed.Should().BeEquivalentTo(1, 2);
             }
@@ -123,8 +123,7 @@ namespace Clockwise.Tests
                 await longCommandScheduler.Schedule(1);
                 await longCommandScheduler.Schedule(2);
                 await longCommandScheduler.Schedule(3);
-                await clock.Wait(10.Minutes());
-                await clock.AdvanceBy(10.Minutes());
+                await clock.AdvanceBy(3.Minutes());
 
                 processedLong.Should().BeEmpty();
             }
