@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public abstract class CircuitBreaker<T> : IObserver<CircuitBreakerStateDescriptor>, ICircuitBreaker
+    public abstract class CircuitBreaker<T> : IObserver<CircuitBreakerStateDescriptor>
     where T : CircuitBreaker<T>
     {
         private readonly ICircuitBreakerStorage storage;
