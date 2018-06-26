@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Clockwise.Redis\Clockwise.Redis.csproj" />
+    <ProjectReference Include="..\Clockwise.Tests\Clockwise.Tests.csproj" />
     <ProjectReference Include="..\Clockwise\Clockwise.csproj" />
   </ItemGroup>
 
