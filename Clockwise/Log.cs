@@ -51,7 +51,7 @@ namespace Clockwise
                 Category<T>.Receiver,
                 logOnStart: true);
 
-        public static void Completion<T>(
+        public static void Handled<T>(
             ConfirmationLogger operation,
             ICommandDelivery<T> delivery,
             ICommandDeliveryResult result)
@@ -69,6 +69,9 @@ namespace Clockwise
                 case CancelDeliveryResult<T> cancel:
                     resultString = "Cancelled";
                     break;
+                case PauseDeliveryResult<T> pause:
+                    resultString = "Paused";
+                    break;
             }
 
             operation.Succeed(
@@ -80,7 +83,7 @@ namespace Clockwise
                 delivery.NumberOfPreviousAttempts);
         }
 
-        public static void Completion<T>(
+        public static void Handled<T>(
             ConfirmationLogger operation,
             ICommandDelivery<T> delivery) =>
             operation.Succeed(

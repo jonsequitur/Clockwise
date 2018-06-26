@@ -44,7 +44,7 @@ namespace Clockwise
                 {
                     await next(delivery);
                     
-                    Log.Completion(operation, delivery);
+                    Log.Handled(operation, delivery);
                 }
             });
 

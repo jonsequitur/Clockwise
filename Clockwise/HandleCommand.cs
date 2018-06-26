@@ -55,7 +55,7 @@ namespace Clockwise
                 {
                     var result = await next(delivery);
 
-                    Log.Completion(operation, delivery, result);
+                    Log.Handled(operation, delivery, result);
 
                     return result;
                 }

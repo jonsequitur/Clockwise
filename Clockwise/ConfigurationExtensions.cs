@@ -81,10 +81,14 @@ namespace Clockwise
                     {
                         {
                             var stateDescriptor = await cb.GetLastStateAsync();
-                            if ( stateDescriptor.State == CircuitBreakerState.Open) return delivery.Retry(stateDescriptor.TimeToLive);
+                            if (stateDescriptor.State == CircuitBreakerState.Open)
+                            {
 
-                            var result1 = await handle(delivery);
-                            switch (result1)
+                                return delivery.Retry(stateDescriptor.TimeToLive);
+                            }
+
+                            var deliveryResult = await handle(delivery);
+                            switch (deliveryResult)
                             {
                                 case PauseDeliveryResult<TChannel> pause:
                                     await cb.SignalFailure(pause.PausePeriod);
@@ -94,7 +98,7 @@ namespace Clockwise
                                     break;
                             }
 
-                            return result1;
+                            return deliveryResult;
                         }
                     });
                 }

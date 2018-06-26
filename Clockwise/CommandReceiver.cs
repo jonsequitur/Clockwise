@@ -82,25 +82,25 @@ namespace Clockwise
                                 {
                                     var result = await handle(delivery);
 
-                                    Log.Completion(operation, delivery, result);
+                                    Log.Handled(operation, delivery, result);
 
                                     return result;
                                 }
                             }, timeout);
                         },
-                        subscribe: (onNext, next) =>
+                        subscribe: (handle, subscribe) =>
                         {
                             using (Log.Subscribe<T>())
                             {
-                                return next(async delivery =>
+                                return subscribe(async delivery =>
                                 {
                                     using (var operation1 = Log.Receive(delivery))
                                     {
-                                        var result1 = await onNext(delivery);
+                                        var deliveryResult = await handle(delivery);
 
-                                        Log.Completion(operation1, delivery, result1);
+                                        Log.Handled(operation1, delivery, deliveryResult);
 
-                                        return result1;
+                                        return deliveryResult;
                                     }
                                 });
                             }
