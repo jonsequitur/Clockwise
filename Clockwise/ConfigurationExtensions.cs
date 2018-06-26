@@ -51,7 +51,7 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreakerFor<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : ICircuitBreaker
+        public static Configuration UseCircuitbreaker<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : ICircuitBreaker
         {
             configuration.Container.AfterCreating<ICommandReceiver<TChannel>>(receiver =>
             {

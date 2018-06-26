@@ -21,7 +21,7 @@ namespace Clockwise.Tests
 
             var cfg = new Configuration()
                 .UseInMemoryScheduling()
-                .UseCircuitbreakerFor<int, ACICircuitBreaker>();
+                .UseCircuitbreaker<int, ACICircuitBreaker>();
             
             new Action(() =>
             {
@@ -40,7 +40,7 @@ namespace Clockwise.Tests
                 cfg = cfg
                     .UseDependency<ICircuitBreakerStorage>(type => new InMemoryCircuitBreakerStorage())
                     .UseInMemoryScheduling()
-                   .UseCircuitbreakerFor<int, ACICircuitBreaker>();
+                   .UseCircuitbreaker<int, ACICircuitBreaker>();
 
                 var handler = CommandHandler.Create<int>(delivery =>
                 {
@@ -83,8 +83,8 @@ namespace Clockwise.Tests
                 cfg = cfg
                     .UseInMemeoryCircuitBreakerStorage()
                     .UseInMemoryScheduling()
-                    .UseCircuitbreakerFor<int, ACICircuitBreaker>()
-                    .UseCircuitbreakerFor<long, ACICircuitBreaker>();
+                    .UseCircuitbreaker<int, ACICircuitBreaker>()
+                    .UseCircuitbreaker<long, ACICircuitBreaker>();
 
 
 
