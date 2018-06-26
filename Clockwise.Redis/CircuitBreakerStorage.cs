@@ -5,6 +5,7 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Pocket;
 using StackExchange.Redis;
+using static System.String;
 
 namespace Clockwise.Redis
 {
@@ -55,8 +56,8 @@ namespace Clockwise.Redis
         public async Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
         {
             var serialised = await db.StringGetAsync(key);
-            lastSerialisedState = serialised.HasValue ? serialised.ToString() : string.Empty;
-            if (string.IsNullOrWhiteSpace(serialised))
+            lastSerialisedState = serialised.HasValue ? serialised.ToString() : Empty;
+            if (IsNullOrWhiteSpace(serialised))
             {
                 var newState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(),
                     TimeSpan.FromMinutes(1));
@@ -69,7 +70,7 @@ namespace Clockwise.Redis
 
         private static CircuitBreakerStateDescriptor TryDeserialise(string serialised)
         {
-            return string.IsNullOrWhiteSpace(serialised)
+            return IsNullOrWhiteSpace(serialised)
                 ? null
                 : JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, jsonSettings);
         }
@@ -82,7 +83,7 @@ namespace Clockwise.Redis
 
         public async Task SignalSuccessAsync()
         {
-            var target = CircuitBreakerState.Open;
+            var target = CircuitBreakerState.Closed;
             if (stateDescriptor?.State == CircuitBreakerState.Open)
             {
                 target = CircuitBreakerState.HalfOpen;
@@ -91,7 +92,7 @@ namespace Clockwise.Redis
             await TransitionStateTo(targetState);
         }
 
-        public async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry = null)
+        private async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry = null)
         {
             var serialsied = JsonConvert.SerializeObject(targetState, jsonSettings);
             var stateExpiry = targetState.State == CircuitBreakerState.Open && expiry == null
@@ -106,15 +107,6 @@ namespace Clockwise.Redis
             var execution = (await db.ScriptEvaluateAsync(script))?.ToString();
             return execution;
         }
-
-        public async Task SetStateAsync(CircuitBreakerState newState, TimeSpan expiry)
-        {
-            var desc = new CircuitBreakerStateDescriptor(newState, Clock.Now(), expiry);
-            var json = JsonConvert.SerializeObject(desc, jsonSettings);
-            Log.Info("Setting circuitbreaker state to {state} from {previous}", desc, lastSerialisedState ?? string.Empty);
-            await Transistion(lastSerialisedState, json, newState == CircuitBreakerState.Open ? (TimeSpan?)expiry : null);
-        }
-
         private async Task<CircuitBreakerStateDescriptor> ReadDescriptor()
         {
             var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Now(),

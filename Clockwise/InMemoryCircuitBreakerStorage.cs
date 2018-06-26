@@ -39,6 +39,16 @@ namespace Clockwise
             await Task.Yield();
         }
 
+        public Task SignalFailureAsync(TimeSpan expiry)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SignalSuccessAsync()
+        {
+            throw new NotImplementedException();
+        }
+
         public IDisposable Subscribe(IObserver<CircuitBreakerStateDescriptor> observer)
         {
             if (observer == null) throw new ArgumentNullException(nameof(observer));
