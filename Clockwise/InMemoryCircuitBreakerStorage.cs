@@ -41,7 +41,7 @@ namespace Clockwise
 
             public async Task SignalFailureAsync(TimeSpan expiry)
             {
-               
+                await Task.Yield();
                 var open = new CircuitBreakerStateDescriptor(CircuitBreakerState.Open, Clock.Current.Now(), expiry);
                 Clock.Current.Schedule(_=>
                 {
@@ -53,7 +53,7 @@ namespace Clockwise
                 },expiry);
                 stateDescriptor = open;
                 NotifyState();
-                await Task.Yield();
+               
             }
 
             private void NotifyState()
@@ -66,12 +66,13 @@ namespace Clockwise
 
             public async Task SignalSuccessAsync()
             {
+                await Task.Yield();
                 if (stateDescriptor?.State != CircuitBreakerState.Closed)
                 {
                     stateDescriptor = new CircuitBreakerStateDescriptor(stateDescriptor?.State == CircuitBreakerState.Open ? CircuitBreakerState.HalfOpen: CircuitBreakerState.Closed, Clock.Current.Now());
                 }
                 NotifyState();
-                await Task.Yield();
+               
             }
         }
 

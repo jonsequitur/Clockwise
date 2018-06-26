@@ -58,7 +58,7 @@ namespace Clockwise.Tests
                 {
                     if (delivery.Command > 10)
                     {
-                        return delivery.PauseAllDeliveriesFor(1.Seconds());
+                        return delivery.PauseAllDeliveriesFor(5.Seconds());
                     }
 
                     processed.Add(delivery.Command);
@@ -69,14 +69,18 @@ namespace Clockwise.Tests
                  rc.Subscribe(handler);
                 
                 var scheduler = cfg.CommandScheduler<int>();
-                await scheduler.Schedule(1);
-                await scheduler.Schedule(2);
-                await scheduler.Schedule(11);
-                await scheduler.Schedule(3);
+                await scheduler.Schedule(1,1.Seconds());
+                await scheduler.Schedule(2,2.Seconds());
+                await scheduler.Schedule(11, 3.Seconds());
+                await scheduler.Schedule(3, 4.Seconds());
 
-                await clock.AdvanceBy(3.Minutes());
+                await clock.AdvanceBy(5.Seconds());
 
                 processed.Should().BeEquivalentTo(1, 2);
+
+                await clock.AdvanceBy(6.Seconds());
+
+                processed.Should().BeEquivalentTo(1, 2, 3);
             }
         }
 
@@ -100,7 +104,7 @@ namespace Clockwise.Tests
                 {
                     if (delivery.Command > 10)
                     {
-                        return delivery.PauseAllDeliveriesFor(1.Seconds());
+                        return delivery.PauseAllDeliveriesFor(10.Seconds());
                     }
 
                     processedInt.Add(delivery.Command);
@@ -120,10 +124,10 @@ namespace Clockwise.Tests
                 await intCommandscheduler.Schedule(11); // open circuit!
 
                 var longCommandScheduler = cfg.CommandScheduler<long>();
-                await longCommandScheduler.Schedule(1);
-                await longCommandScheduler.Schedule(2);
-                await longCommandScheduler.Schedule(3);
-                await clock.AdvanceBy(3.Minutes());
+                await longCommandScheduler.Schedule(1, 1.Seconds());
+                await longCommandScheduler.Schedule(2, 2.Seconds());
+                await longCommandScheduler.Schedule(3, 3.Seconds());
+                await clock.AdvanceBy(4.Seconds());
 
                 processedLong.Should().BeEmpty();
             }
