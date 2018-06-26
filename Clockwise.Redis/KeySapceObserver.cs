@@ -16,14 +16,12 @@ namespace Clockwise.Redis
             observers = new ConcurrentSet<IObserver<(string key, string operation)>>();
             var keyToSubscribe = string.IsNullOrWhiteSpace(key) ? "*" : key;
             notificationChannel = $"__keyspace@{dbId}__:{keyToSubscribe}";
-           
         }
 
         public async Task Initialize()
         {
             await subscriber.SubscribeAsync(notificationChannel, Handler);
         }
-
 
         private void Handler(RedisChannel channel, RedisValue notificationType)
         {
@@ -34,8 +32,8 @@ namespace Clockwise.Redis
                 observer.OnNext((key,notificationType));
 
             }
-           
         }
+
         private static string GetKey(string channel)
         {
             var index = channel.IndexOf(':');

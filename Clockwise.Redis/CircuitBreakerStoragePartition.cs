@@ -109,7 +109,6 @@ namespace Clockwise.Redis
 
         public async Task Initialize(ISubscriber subscriber)
         {
-   
             keySpaceObserver = new KeySpaceObserver(dbId, key, subscriber);
             keySpaceSubscription = keySpaceObserver.Subscribe(this);
             await keySpaceObserver.Initialize();
