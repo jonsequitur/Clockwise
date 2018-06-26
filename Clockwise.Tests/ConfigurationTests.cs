@@ -177,7 +177,7 @@ namespace Clockwise.Tests
                         await configuration.CommandScheduler<string>().Schedule(c.Now().ToString());
                     }, () => 1.Seconds());
 
-                    var handler = HandleCommand.Create<string>(delivery =>
+                    var handler = CommandHandler.Create<string>(delivery =>
                     {
                     });
 

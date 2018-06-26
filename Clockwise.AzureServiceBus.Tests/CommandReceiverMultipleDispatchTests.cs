@@ -31,8 +31,8 @@ namespace Clockwise.AzureServiceBus.Tests
 
             var received = new List<ICommand<CommandTarget>>();
 
-            var handler1 = HandleCommand.Create<CreateCommandTarget>(delivery => received.Add(delivery.Command));
-            var handler2 = HandleCommand.Create<UpdateCommandTarget>(delivery => received.Add(delivery.Command));
+            var handler1 = CommandHandler.Create<CreateCommandTarget>(delivery => received.Add(delivery.Command));
+            var handler2 = CommandHandler.Create<UpdateCommandTarget>(delivery => received.Add(delivery.Command));
 
             bus.Subscribe(handler1);
             bus.Subscribe(handler2);

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public static class HandleCommand
+    public static class CommandHandler
     {
         public static ICommandHandler<T> Create<T>(HandleCommand<T> handle) =>
             new AnonymousCommandHandler<T>(handle);
