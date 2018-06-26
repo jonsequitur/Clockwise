@@ -2,7 +2,7 @@ using System;
 
 namespace Clockwise
 {
-    public static partial class CommandDelivery
+    public static class CommandDelivery
     {
         public static CancelDeliveryResult<T> Cancel<T>(
             this ICommandDelivery<T> commandDelivery,
