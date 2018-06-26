@@ -6,14 +6,14 @@ using StackExchange.Redis;
 namespace Clockwise.Redis.Tests
 {
     
-    public class RedisCircuitBreakerStorageTests : CircuitBreakerStorageTests<ACICircuitBreaker>
+    public class RedisCircuitBreakerStorageTests : CircuitBreakerStorageTests<TestCircuitBreaker>
     {
         
         protected override async Task<ICircuitBreakerStorage> CreateCircuitBreaker()
         {
             var settings = new RedisCircuitBreakerStorageSettings("127.0.0.1", 0);
             var cb01 = new CircuitBreakerStorage(settings);
-            await cb01.InitializeFor<ACICircuitBreaker>();
+            await cb01.InitializeFor<TestCircuitBreaker>();
             AddToDisposable(Disposable.Create(() =>
             {
                 var connection = ConnectionMultiplexer.Connect("127.0.0.1");

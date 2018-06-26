@@ -7,12 +7,6 @@ using Xunit;
 
 namespace Clockwise.Tests
 {
-    public class ACICircuitBreaker : CircuitBreaker<ACICircuitBreaker>
-    {
-        public ACICircuitBreaker(ICircuitBreakerStorage storage) : base(storage)
-        {
-        }
-    }
     public class CircuitBreakerTests
     {
         [Fact]
@@ -21,7 +15,7 @@ namespace Clockwise.Tests
 
             var cfg = new Configuration()
                 .UseInMemoryScheduling()
-                .UseCircuitbreaker<int, ACICircuitBreaker>();
+                .UseCircuitbreaker<int, TestCircuitBreaker>();
             
             new Action(() =>
             {
@@ -40,7 +34,7 @@ namespace Clockwise.Tests
                 cfg = cfg
                     .UseDependency<ICircuitBreakerStorage>(type => new InMemoryCircuitBreakerStorage())
                     .UseInMemoryScheduling()
-                   .UseCircuitbreaker<int, ACICircuitBreaker>();
+                   .UseCircuitbreaker<int, TestCircuitBreaker>();
 
                 var handler = CommandHandler.Create<int>(delivery =>
                 {
@@ -83,8 +77,8 @@ namespace Clockwise.Tests
                 cfg = cfg
                     .UseInMemeoryCircuitBreakerStorage()
                     .UseInMemoryScheduling()
-                    .UseCircuitbreaker<int, ACICircuitBreaker>()
-                    .UseCircuitbreaker<long, ACICircuitBreaker>();
+                    .UseCircuitbreaker<int, TestCircuitBreaker>()
+                    .UseCircuitbreaker<long, TestCircuitBreaker>();
 
 
 
