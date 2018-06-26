@@ -13,7 +13,7 @@ namespace Clockwise.Redis.Tests
         {
             var settings = new RedisCircuitBreakerStorageSettings("127.0.0.1", 0);
             var cb01 = new CircuitBreakerStorage(settings);
-            await cb01.InitialiseFor<ACICircuitBreaker>();
+            await cb01.InitializeFor<ACICircuitBreaker>();
             AddToDisposable(Disposable.Create(() =>
             {
                 var connection = ConnectionMultiplexer.Connect("127.0.0.1");

@@ -17,7 +17,7 @@ namespace Clockwise.Redis
         {
             this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
         }
-        public async Task InitialiseFor<T>() where T : CircuitBreaker<T>
+        public async Task InitializeFor<T>() where T : CircuitBreaker<T>
         {
             if (connection == null)
             {
@@ -33,7 +33,7 @@ namespace Clockwise.Redis
                 return keyPartition;
             });
 
-            await partition.Initialise(subscriber);
+            await partition.Initialize(subscriber);
         }
 
         private string GetKey<T>()

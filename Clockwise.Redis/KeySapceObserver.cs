@@ -19,7 +19,7 @@ namespace Clockwise.Redis
            
         }
 
-        public async Task Initialise()
+        public async Task Initialize()
         {
             await subscriber.SubscribeAsync(notificationChannel, Handler);
         }

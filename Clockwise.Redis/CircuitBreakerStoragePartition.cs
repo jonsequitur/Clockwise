@@ -107,12 +107,12 @@ namespace Clockwise.Redis
             return desc;
         }
 
-        public async Task Initialise(ISubscriber subscriber)
+        public async Task Initialize(ISubscriber subscriber)
         {
    
             keySpaceObserver = new KeySpaceObserver(dbId, key, subscriber);
             keySpaceSubscription = keySpaceObserver.Subscribe(this);
-            await keySpaceObserver.Initialise();
+            await keySpaceObserver.Initialize();
         }
         void IObserver<(string key, string operation)>.OnCompleted()
         {
