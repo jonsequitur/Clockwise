@@ -5,13 +5,6 @@ namespace Clockwise
 {
     public static class CommandReceiver
     {
-        /// <summary>
-        /// Creates the an instance of <see cref="ICommandReceiver{T}"/>.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="receive">The receive.</param>
-        /// <param name="subscribe">The subscribe.</param>
-        /// <returns></returns>
         internal static ICommandReceiver<T> Create<T>(
             Func<HandleCommand<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
             Func<HandleCommand<T>, IDisposable> subscribe) =>
@@ -64,13 +57,7 @@ namespace Clockwise
 
             return receiver.Subscribe(OnNext);
         }
-
-        /// <summary>
-        /// Enables tracing on the specified <see cref="ICommandReceiver{T}"/>.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="receiver">The receiver.</param>
-        /// <returns></returns>
+        
         public static ICommandReceiver<T> Trace<T>(
                     this ICommandReceiver<T> receiver) =>
                     receiver.UseMiddleware(

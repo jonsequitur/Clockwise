@@ -9,16 +9,6 @@ namespace Clockwise
 
         private readonly Func<HandleCommand<T>, IDisposable> subscribe;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AnonymousCommandReceiver{T}"/> class.
-        /// </summary>
-        /// <param name="receive">The receive.</param>
-        /// <param name="subscribe">The subscribe.</param>
-        /// <exception cref="ArgumentNullException">
-        /// subscribe
-        /// or
-        /// receive
-        /// </exception>
         public AnonymousCommandReceiver(
             Func<HandleCommand<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive,
             Func<HandleCommand<T>, IDisposable> subscribe)
