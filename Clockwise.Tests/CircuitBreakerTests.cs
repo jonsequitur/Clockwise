@@ -16,30 +16,18 @@ namespace Clockwise.Tests
     public class CircuitBreakerTests
     {
         [Fact]
-        public async Task When_circuitbreaker_is_not_configured_and_the_handler_requests_the_pause_then_usefull_exception_is_thrown()
+        public void When_circuitbreaker_is_not_configured_and_the_handler_requests_the_pause_then_usefull_exception_is_thrown()
         {
-            using (var clock = VirtualClock.Start())
+
+            var cfg = new Configuration()
+                .UseInMemoryScheduling()
+                .UseCircuitbreakerFor<int, ACICircuitBreaker>();
+            
+            new Action(() =>
             {
-                var cfg = new Configuration()
-                    .UseInMemoryScheduling()
-                    .UseCircuitbreakerFor<int, ACICircuitBreaker>();
+                cfg.CommandReceiver<int>();
+            }).Should().Throw<ConfigurationException>();
 
-
-                var handler = CommandHandler.Create<int>(delivery =>
-                {
-                    if (delivery.Command > 10)
-                    {
-                        return delivery.PauseAllDeliveriesFor(1.Seconds());
-                    }
-
-                    return delivery.Complete();
-                });
-
-                new Action(() =>
-                {
-                    cfg.CommandReceiver<int>();
-                }).Should().Throw<ConfigurationException>();
-            }
         }
 
         [Fact]
@@ -66,11 +54,11 @@ namespace Clockwise.Tests
                 });
 
                 var rc = cfg.CommandReceiver<int>();
-                 rc.Subscribe(handler);
-                
+                rc.Subscribe(handler);
+
                 var scheduler = cfg.CommandScheduler<int>();
-                await scheduler.Schedule(1,1.Seconds());
-                await scheduler.Schedule(2,2.Seconds());
+                await scheduler.Schedule(1, 1.Seconds());
+                await scheduler.Schedule(2, 2.Seconds());
                 await scheduler.Schedule(11, 3.Seconds());
                 await scheduler.Schedule(3, 4.Seconds());
 
