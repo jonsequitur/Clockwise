@@ -3,7 +3,15 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public abstract class CircuitBreaker:  IDisposable, IObserver<CircuitBreakerStateDescriptor>
+    public interface ICircuitBreaker : IDisposable
+    {
+        Task<CircuitBreakerStateDescriptor> GetLastStateAsync();
+        Task SignalSuccess();
+        Task SignalFailure(TimeSpan expiry);
+    }
+
+    public abstract class CircuitBreaker<T>: IObserver<CircuitBreakerStateDescriptor>, ICircuitBreaker
+    where T : CircuitBreaker<T>
     {
         private readonly ICircuitBreakerStorage storage;
         private IDisposable setStateSubscription;
@@ -17,7 +25,7 @@ namespace Clockwise
         protected CircuitBreaker(ICircuitBreakerStorage storage)
         {
             this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
-            storageSubscription = this.storage.Subscribe(this);
+            storageSubscription = this.storage.Subscribe<T>(this);
         }
 
         private CircuitBreakerStateDescriptor stateDescriptor;
@@ -26,17 +34,17 @@ namespace Clockwise
        
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
         {
-            return stateDescriptor == null ? storage.GetLastStateAsync() : Task.FromResult(stateDescriptor);
+            return stateDescriptor == null ? storage.GetLastStateOfAsync<T>() : Task.FromResult(stateDescriptor);
         }
 
         public async Task SignalSuccess()
         {
-            await storage.SignalSuccessAsync();
+            await storage.SignalSuccessForAsync<T>();
         }
 
         public async Task SignalFailure(TimeSpan expiry)
         {
-            await storage.SignalFailureAsync(expiry);
+            await storage.SignalFailureForAsync<T>(expiry);
         }
 
         public void Dispose()

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Clockwise.Tests
 {
-    public class ACICircuitBreaker : CircuitBreaker
+    public class ACICircuitBreaker : CircuitBreaker<ACICircuitBreaker>
     {
         public ACICircuitBreaker(ICircuitBreakerStorage storage) : base(storage)
         {
@@ -123,6 +123,7 @@ namespace Clockwise.Tests
                 await longCommandScheduler.Schedule(1);
                 await longCommandScheduler.Schedule(2);
                 await longCommandScheduler.Schedule(3);
+                await clock.Wait(10.Minutes());
                 await clock.AdvanceBy(10.Minutes());
 
                 processedLong.Should().BeEmpty();

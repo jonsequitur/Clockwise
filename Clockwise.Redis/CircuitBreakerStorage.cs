@@ -1,179 +1,99 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Serialization;
-using Pocket;
 using StackExchange.Redis;
-using static System.String;
 
 namespace Clockwise.Redis
 {
-    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage, IDisposable,
-        IObserver<(string key, string operation)>
+    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage, IDisposable
     {
-        private readonly string connectionString;
-        private readonly int dbId;
-        private static readonly Logger Log = new Logger("CircuitBreakerStorage");
-
+        private readonly RedisCircuitBreakerStorageSettings settings;
         private ConnectionMultiplexer connection;
         private IDatabase db;
-        private readonly string key;
         private ISubscriber subscriber;
-        private static readonly JsonSerializerSettings jsonSettings;
-        private readonly ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>> observers;
-        private KeySapceObserver keySapceObserver;
-        private IDisposable keySpaceSubscription;
-        private CircuitBreakerStateDescriptor stateDescriptor;
+        private readonly ConcurrentDictionary<string, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<string, CircuitBreakerStoragePartition>();
 
-
-        private string lastSerialisedState;
-
-        static CircuitBreakerStorage()
+        public CircuitBreakerStorage(RedisCircuitBreakerStorageSettings settings)
         {
-            jsonSettings = new JsonSerializerSettings {ContractResolver = new CamelCasePropertyNamesContractResolver()};
-            jsonSettings.Converters.Add(new StringEnumConverter());
-            jsonSettings.NullValueHandling = NullValueHandling.Ignore;
+            this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
         }
-
-        public CircuitBreakerStorage(string connectionString, int dbId, Type resourceType)
+        public async Task InitialiseFor<T>() where T : CircuitBreaker<T>
         {
-            this.connectionString = connectionString;
-            this.dbId = dbId;
-            observers = new ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>>();
-            key = $"{resourceType.Name}.circuitBreaker";
-        }
-        public async Task Initialise()
-        {
-            connection = await ConnectionMultiplexer.ConnectAsync(connectionString);
-            db = connection.GetDatabase(dbId);
-            subscriber = connection.GetSubscriber();
-            keySapceObserver = new KeySapceObserver(dbId, key, subscriber);
-            keySpaceSubscription = keySapceObserver.Subscribe(this);
-            await keySapceObserver.Initialise();
-        }
-
-        public async Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
-        {
-            var serialised = await db.StringGetAsync(key);
-            lastSerialisedState = serialised.HasValue ? serialised.ToString() : Empty;
-            if (IsNullOrWhiteSpace(serialised))
+            if (connection == null)
             {
-                var newState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(),
-                    TimeSpan.FromMinutes(1));
-                lastSerialisedState = await Transistion(lastSerialisedState,
-                    JsonConvert.SerializeObject(newState, jsonSettings), null);
+                connection = await ConnectionMultiplexer.ConnectAsync(settings.ConnectionString);
+                db = connection.GetDatabase(settings.DbId);
+                subscriber = connection.GetSubscriber();
             }
 
-            return TryDeserialise(lastSerialisedState);
-        }
-
-        private static CircuitBreakerStateDescriptor TryDeserialise(string serialised)
-        {
-            return IsNullOrWhiteSpace(serialised)
-                ? null
-                : JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, jsonSettings);
-        }
-
-        public async Task SignalFailureAsync(TimeSpan expiry)
-        {
-            var openState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Open, Clock.Current.Now(), expiry);
-            await TransitionStateTo( openState, expiry);
-        }
-
-        public async Task SignalSuccessAsync()
-        {
-            var target = CircuitBreakerState.Closed;
-            if (stateDescriptor?.State == CircuitBreakerState.Open)
+            var keySpace = GetKey<T>();
+            var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                target = CircuitBreakerState.HalfOpen;
-            }
-            var targetState = new CircuitBreakerStateDescriptor(target, Clock.Current.Now());
-            await TransitionStateTo(targetState);
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                return keyPartition;
+            });
+
+            await partition.Initialise(subscriber);
         }
 
-        private async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry = null)
+        private string GetKey<T>()
         {
-            var serialsied = JsonConvert.SerializeObject(targetState, jsonSettings);
-            var stateExpiry = targetState.State == CircuitBreakerState.Open && expiry == null
-                ? TimeSpan.FromMinutes(1)
-                : expiry;
-            await Transistion(lastSerialisedState, serialsied, stateExpiry);
+            return $"{typeof(T).Name}.circuitBreaker";
         }
-        private async Task<string> Transistion(string fromState, string toState, TimeSpan? newStateExpiry = null)
+  
+        public Task<CircuitBreakerStateDescriptor> GetLastStateOfAsync<T>() where T : CircuitBreaker<T>
         {
-            var setCommand = newStateExpiry == null ? $"redis.call(\'set\',\'{key}\',\'{toState}\')" : $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
-            var script = $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then {setCommand} return \'{toState}\' else return prev end";
-            var execution = (await db.ScriptEvaluateAsync(script))?.ToString();
-            return execution;
-        }
-        private async Task<CircuitBreakerStateDescriptor> ReadDescriptor()
-        {
-            var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Now(),
-                TimeSpan.FromMinutes(1));
-            var src = await db.StringGetAsync(key);
-            
-            if (!src.IsNullOrEmpty)
+            var keySpace = GetKey<T>();
+            var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                desc = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(src, jsonSettings);
-            }
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                return keyPartition;
+            });
 
-            return desc;
+            return partition.GetLastStateAsync();
+        }
+        public  Task SignalFailureForAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
+        {
+            var keySpace = GetKey<T>();
+            var partition = partitions.GetOrAdd(keySpace, redisKey =>
+            {
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                return keyPartition;
+            });
+
+            return partition.SignalFailureAsync(expiry);
+        }
+
+        public Task SignalSuccessForAsync<T>() where T : CircuitBreaker<T>
+        {
+            var keySpace = GetKey<T>();
+            var partition = partitions.GetOrAdd(keySpace, redisKey =>
+            {
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                return keyPartition;
+            });
+
+            return partition.SignalSuccessAsync();
         }
 
         public void Dispose()
         {
-            keySpaceSubscription?.Dispose();
-            keySpaceSubscription = null;
-
             subscriber = null;
 
-            keySapceObserver?.Dispose();
             connection?.Dispose();
             connection = null;
         }
 
-        public IDisposable Subscribe(IObserver<CircuitBreakerStateDescriptor> observer)
+        public IDisposable Subscribe<T>(IObserver<CircuitBreakerStateDescriptor> observer) where T : CircuitBreaker<T>
         {
-            if (observer == null) throw new ArgumentNullException(nameof(observer));
-            observers.TryAdd(observer);
-            return Disposable.Create(() => { observers.TryRemove(observer); });
-        }
-
-        void IObserver<(string key, string operation)>.OnCompleted()
-        {
-            keySpaceSubscription?.Dispose();
-            keySpaceSubscription = null;
-        }
-
-        void IObserver<(string key, string operation)>.OnError(Exception error)
-        {
-            throw new NotImplementedException();
-        }
-
-        void IObserver<(string key, string operation)>.OnNext((string key, string operation) value)
-        {
-            switch (value.operation)
+            var keySpace = GetKey<T>();
+            var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                case "expired":
-                {
-                    Transistion(
-                        null,
-                        JsonConvert.SerializeObject(new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now()), jsonSettings))
-                        .Wait();
-                }
-                    break;
-                default:
-                    ReadDescriptor().ContinueWith(task =>
-                    {
-                        var desc = task.Result;
-                        stateDescriptor = desc;
-                        lastSerialisedState = JsonConvert.SerializeObject(stateDescriptor, jsonSettings);
-                        foreach (var observer in observers) observer.OnNext(desc);
-                    });
-                    break;
-            }
-          
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                return keyPartition;
+            });
+
+            return partition.Subscribe(observer);
         }
     }
 }

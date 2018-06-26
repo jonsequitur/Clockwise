@@ -3,10 +3,11 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public interface ICircuitBreakerStorage : IObservable<CircuitBreakerStateDescriptor>
+    public interface ICircuitBreakerStorage
     {
-        Task<CircuitBreakerStateDescriptor> GetLastStateAsync();
-        Task SignalFailureAsync(TimeSpan expiry);
-        Task SignalSuccessAsync();
+        Task<CircuitBreakerStateDescriptor> GetLastStateOfAsync<T>() where T : CircuitBreaker<T>;
+        Task SignalFailureForAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>;
+        Task SignalSuccessForAsync<T>() where T : CircuitBreaker<T>;
+        IDisposable Subscribe<T>(IObserver<CircuitBreakerStateDescriptor> observer) where T : CircuitBreaker<T>;
     }
 }

@@ -5,12 +5,15 @@ using StackExchange.Redis;
 
 namespace Clockwise.Redis.Tests
 {
-    public class RedisCircuitBreakerStorageTests : CircuitBreakerStorageTests
+    
+    public class RedisCircuitBreakerStorageTests : CircuitBreakerStorageTests<ACICircuitBreaker>
     {
+        
         protected override async Task<ICircuitBreakerStorage> CreateCircuitBreaker()
         {
-            var cb01 = new CircuitBreakerStorage("127.0.0.1", 0, typeof(string));
-            await cb01.Initialise();
+            var settings = new RedisCircuitBreakerStorageSettings("127.0.0.1", 0);
+            var cb01 = new CircuitBreakerStorage(settings);
+            await cb01.InitialiseFor<ACICircuitBreaker>();
             AddToDisposable(Disposable.Create(() =>
             {
                 var connection = ConnectionMultiplexer.Connect("127.0.0.1");

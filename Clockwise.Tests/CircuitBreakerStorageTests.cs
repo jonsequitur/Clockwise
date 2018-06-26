@@ -7,7 +7,8 @@ using Xunit;
 
 namespace Clockwise.Tests
 {
-    public abstract class CircuitBreakerStorageTests : IDisposable
+    public abstract class CircuitBreakerStorageTests<T> :  IDisposable
+    where T : CircuitBreaker<T>
     {
         private readonly CompositeDisposable disposables = new CompositeDisposable();
         protected abstract Task<ICircuitBreakerStorage> CreateCircuitBreaker();
@@ -23,11 +24,11 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            var stateDescriptor = await cb01.GetLastStateAsync();
+            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
             stateDescriptor.Should().NotBeNull();
-            await cb01.SignalFailureAsync(2.Seconds());
+            await cb01.SignalFailureForAsync<T>(2.Seconds());
             await clock.Wait(1.Seconds());
-            stateDescriptor = await cb01.GetLastStateAsync();
+            stateDescriptor = await cb01.GetLastStateOfAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.Open);
         }
 
@@ -37,11 +38,11 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            await cb01.SignalFailureAsync(2.Seconds());
+            await cb01.SignalFailureForAsync<T>(2.Seconds());
             await clock.Wait(1.Seconds());
-            await cb01.SignalSuccessAsync();
+            await cb01.SignalSuccessForAsync<T>();
             await clock.Wait(1.Seconds());
-            var stateDescriptor = await cb01.GetLastStateAsync();
+            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 
@@ -50,15 +51,15 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            await cb01.SignalFailureAsync(TimeSpan.FromSeconds(2));
-            await Clock.Current.Wait(1.Seconds());
-            await cb01.SignalSuccessAsync();
-            await Clock.Current.Wait(1.Seconds());
-            var stateDescriptor = await cb01.GetLastStateAsync();
+            await cb01.SignalFailureForAsync<T>(TimeSpan.FromSeconds(2));
+            await clock.Wait(1.Seconds());
+            await cb01.SignalSuccessForAsync<T>();
+            await clock.Wait(1.Seconds());
+            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
-            await cb01.SignalSuccessAsync();
-            await Clock.Current.Wait(1.Seconds());
-            stateDescriptor = await cb01.GetLastStateAsync();
+            await cb01.SignalSuccessForAsync<T>();
+            await clock.Wait(1.Seconds());
+            stateDescriptor = await cb01.GetLastStateOfAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
         }
         [Fact]
@@ -66,15 +67,15 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            await cb01.SignalFailureAsync(2.Seconds());
+            await cb01.SignalFailureForAsync<T>(2.Seconds());
             await clock.Wait(1.Seconds());
-            await cb01.SignalSuccessAsync();
+            await cb01.SignalSuccessForAsync<T>();
             await clock.Wait(1.Seconds());
-            var stateDescriptor = await cb01.GetLastStateAsync();
+            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
-            await cb01.SignalFailureAsync(2.Seconds());
+            await cb01.SignalFailureForAsync<T>(2.Seconds());
             await clock.Wait(1.Seconds());
-            stateDescriptor = await cb01.GetLastStateAsync();
+            stateDescriptor = await cb01.GetLastStateOfAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.Open);
         }
 
@@ -83,9 +84,9 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            await cb01.SignalFailureAsync(1.Seconds());
+            await cb01.SignalFailureForAsync<T>(1.Seconds());
             await clock.Wait(2.Seconds());
-            var stateDescriptor = await cb01.GetLastStateAsync();
+            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 
