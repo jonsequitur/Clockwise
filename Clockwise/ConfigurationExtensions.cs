@@ -66,7 +66,7 @@ namespace Clockwise
                     throw new ConfigurationException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}",e);
                 }
 
-                async Task<ICommandDeliveryResult> ReceivingMiddleware(HandleCommand<TChannel> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> next)
+                async Task<ICommandDeliveryResult> Receive(HandleCommand<TChannel> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> next)
                 {
                     return await next(async delivery =>
                     {
@@ -75,7 +75,7 @@ namespace Clockwise
                     }, timeout);
                 }
 
-                IDisposable SubscribingMiddleware(HandleCommand<TChannel> handle, Func<HandleCommand<TChannel>, IDisposable> subscribe)
+                IDisposable Subscribe(HandleCommand<TChannel> handle, Func<HandleCommand<TChannel>, IDisposable> subscribe)
                 {
                     return subscribe(async delivery =>
                     {
@@ -104,8 +104,8 @@ namespace Clockwise
                 }
 
                 var instrumented = receiver.UseMiddleware(
-                    receive: ReceivingMiddleware,
-                    subscribe: SubscribingMiddleware);
+                    receive: Receive,
+                    subscribe: Subscribe);
 
                 return instrumented;
             });
