@@ -51,7 +51,9 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreaker<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
+        public static Configuration UseCircuitbreaker<TChannel, TCircuitBreaker, THalfOpenStatePolicy>(this Configuration configuration)
+            where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
+            where THalfOpenStatePolicy : HalfOpenStatePolicy<TChannel>
         {
             configuration.Container.AfterCreating<ICommandReceiver<TChannel>>(receiver =>
             {
@@ -59,11 +61,23 @@ namespace Clockwise
                 try
                 {
                     cb = configuration.Container.Resolve<TCircuitBreaker>();
-                    
+
                 }
                 catch (Exception e)
                 {
-                    throw new ConfigurationException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}",e);
+                    throw new ConfigurationException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}", e);
+                }
+
+                THalfOpenStatePolicy hosp;
+
+                try
+                {
+                    hosp = configuration.Container.Resolve<THalfOpenStatePolicy>();
+
+                }
+                catch (Exception e)
+                {
+                    throw new ConfigurationException($"Failure during creation of HalfOpen state policy {typeof(THalfOpenStatePolicy).Name}", e);
                 }
 
                 async Task<ICommandDeliveryResult> Receive(HandleCommand<TChannel> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> subscribe)
@@ -83,11 +97,18 @@ namespace Clockwise
                             var stateDescriptor = await cb.GetLastStateAsync();
                             if (stateDescriptor.State == CircuitBreakerState.Open)
                             {
-
                                 return delivery.Retry(stateDescriptor.TimeToLive);
                             }
 
-                            var deliveryResult = await handle(delivery);
+                            ICommandDeliveryResult deliveryResult;
+                            if (stateDescriptor.State == CircuitBreakerState.HalfOpen)
+                            {
+                                deliveryResult = await hosp.Handle(handle, delivery);
+                            }
+                            else
+                            {
+                                deliveryResult = await handle(delivery);
+                            }
                             switch (deliveryResult)
                             {
                                 case PauseDeliveryResult<TChannel> pause:
@@ -111,6 +132,12 @@ namespace Clockwise
             });
             return configuration;
         }
+
+        public static Configuration UseCircuitbreaker<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
+        {
+            return configuration.UseCircuitbreaker<TChannel, TCircuitBreaker, PassThroughPolicy<TChannel>>();
+        }
+
         public static Configuration UseDependencies(
             this Configuration configuration,
             Func<Type, Func<object>> strategy)
