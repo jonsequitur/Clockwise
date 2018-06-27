@@ -8,7 +8,6 @@ namespace Clockwise.Redis
     public sealed class CircuitBreakerStorage : ICircuitBreakerStorage, IDisposable
     {
         private readonly RedisCircuitBreakerStorageSettings settings;
-        private ConnectionMultiplexer connection;
         private IDatabase db;
         private ISubscriber subscriber;
         private readonly ConcurrentDictionary<string, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<string, CircuitBreakerStoragePartition>();
@@ -16,16 +15,19 @@ namespace Clockwise.Redis
         public CircuitBreakerStorage(RedisCircuitBreakerStorageSettings settings)
         {
             this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
+
+            LazyConnection
+                = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(settings.ConnectionString));
         }
+
+        private Lazy<ConnectionMultiplexer> LazyConnection { get; set; }
 
         public async Task InitializeFor<T>() where T : CircuitBreaker<T>
         {
-            if (connection == null)
-            {
-                connection = await ConnectionMultiplexer.ConnectAsync(settings.ConnectionString);
-                db = connection.GetDatabase(settings.DbId);
-                subscriber = connection.GetSubscriber();
-            }
+            var connection = LazyConnection.Value;
+            db = connection.GetDatabase(settings.DbId);
+            subscriber = connection.GetSubscriber();
+
 
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
@@ -41,7 +43,7 @@ namespace Clockwise.Redis
         {
             return $"{typeof(T).Name}.circuitBreaker";
         }
-  
+
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync<T>() where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
@@ -53,7 +55,7 @@ namespace Clockwise.Redis
 
             return partition.GetLastStateAsync();
         }
-        public  Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
+        public Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
@@ -80,8 +82,12 @@ namespace Clockwise.Redis
         public void Dispose()
         {
             subscriber = null;
-            connection?.Dispose();
-            connection = null;
+            if (LazyConnection.IsValueCreated)
+            {
+                var connection = LazyConnection.Value;
+                LazyConnection = null;
+                connection?.Dispose();
+            }
         }
 
         public IDisposable Subscribe<T>(CircuitBreakerStorageSubscriber subscriber) where T : CircuitBreaker<T>
