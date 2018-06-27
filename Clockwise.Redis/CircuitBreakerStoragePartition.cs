@@ -67,7 +67,7 @@ namespace Clockwise.Redis
             {
                 var newState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(),
                     TimeSpan.FromMinutes(1));
-                lastSerialisedState = await Transistion(lastSerialisedState,
+                lastSerialisedState = await Transition(lastSerialisedState,
                     JsonConvert.SerializeObject(newState, JsonSerializationSettings));
             }
 
@@ -86,9 +86,9 @@ namespace Clockwise.Redis
             var stateExpiry = targetState.State == CircuitBreakerState.Open && expiry == null
                 ? TimeSpan.FromMinutes(1)
                 : expiry;
-            await Transistion(lastSerialisedState, serialsied, stateExpiry);
+            await Transition(lastSerialisedState, serialsied, stateExpiry);
         }
-        private async Task<string> Transistion(string fromState, string toState, TimeSpan? newStateExpiry = null)
+        private async Task<string> Transition(string fromState, string toState, TimeSpan? newStateExpiry = null)
         {
             var setCommand = newStateExpiry == null ? $"redis.call(\'set\',\'{key}\',\'{toState}\')" : $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
             var script = $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then {setCommand} return \'{toState}\' else return prev end";
@@ -127,10 +127,12 @@ namespace Clockwise.Redis
             {
                 case "expired":
                 {
-                    Transistion(
+                       Task.Run(() =>Transition(
                             null,
-                            JsonConvert.SerializeObject(new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now()), JsonSerializationSettings))
-                        .Wait();
+                            JsonConvert.SerializeObject(
+                                new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now()),
+                                JsonSerializationSettings)));
+
                 }
                     break;
                 default:
