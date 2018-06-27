@@ -62,6 +62,7 @@ namespace Clockwise.Redis
         {
             var serialised = await db.StringGetAsync(key);
             lastSerialisedState = serialised.HasValue ? serialised.ToString() : Empty;
+
             if (IsNullOrWhiteSpace(serialised))
             {
                 var newState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(),
@@ -100,7 +101,7 @@ namespace Clockwise.Redis
                 TimeSpan.FromMinutes(1));
             var src = await db.StringGetAsync(key);
 
-            if (!src.IsNullOrEmpty)
+            if (!src.IsNullOrEmpty && !IsNullOrWhiteSpace(src))
             {
                 desc = JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(src, JsonSerializationSettings);
             }
