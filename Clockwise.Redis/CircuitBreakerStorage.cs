@@ -84,7 +84,7 @@ namespace Clockwise.Redis
             connection = null;
         }
 
-        public IDisposable Subscribe<T>(CircuitBreakerStateDescriptorSubscriber subscriber) where T : CircuitBreaker<T>
+        public IDisposable Subscribe<T>(CircuitBreakerStorageSubscriber subscriber) where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>

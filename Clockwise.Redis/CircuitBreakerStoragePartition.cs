@@ -13,7 +13,7 @@ namespace Clockwise.Redis
     internal class CircuitBreakerStoragePartition : IDisposable
     {
         private static readonly JsonSerializerSettings JsonSerializationSettings;
-        private readonly ConcurrentSet<CircuitBreakerStateDescriptorSubscriber> subscribers;
+        private readonly ConcurrentSet<CircuitBreakerStorageSubscriber> subscribers;
         private CircuitBreakerStateDescriptor stateDescriptor;
         private string lastSerialisedState;
         private readonly string key;
@@ -38,7 +38,7 @@ namespace Clockwise.Redis
             this.key = key;
             this.dbId = dbId;
             this.db = db;
-            subscribers = new ConcurrentSet<CircuitBreakerStateDescriptorSubscriber>();
+            subscribers = new ConcurrentSet<CircuitBreakerStorageSubscriber>();
         }
 
         public async Task SignalFailureAsync(TimeSpan expiry)
@@ -153,7 +153,7 @@ namespace Clockwise.Redis
             keySpaceObserver = null;
         }
 
-        public IDisposable Subscribe(CircuitBreakerStateDescriptorSubscriber subscriber)
+        public IDisposable Subscribe(CircuitBreakerStorageSubscriber subscriber)
         {
             if (subscriber == null) throw new ArgumentNullException(nameof(subscriber));
             subscribers.TryAdd(subscriber);
