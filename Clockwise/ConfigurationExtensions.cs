@@ -66,9 +66,9 @@ namespace Clockwise
                     throw new ConfigurationException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}",e);
                 }
 
-                async Task<ICommandDeliveryResult> Receive(HandleCommand<TChannel> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> next)
+                async Task<ICommandDeliveryResult> Receive(HandleCommand<TChannel> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> subscribe)
                 {
-                    return await next(async delivery =>
+                    return await subscribe(async delivery =>
                     {
                         var result = await handlerDelegate(delivery);
                         return result;
@@ -118,7 +118,7 @@ namespace Clockwise
             configuration.Container
                          .AddStrategy(t =>
                          {
-                             Func<object> resolveFunc = strategy(t);
+                             var resolveFunc = strategy(t);
                              if (resolveFunc != null)
                              {
                                  return container => resolveFunc();
