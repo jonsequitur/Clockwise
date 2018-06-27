@@ -11,8 +11,7 @@ namespace Clockwise.Redis.Tests
         
         protected override async Task<ICircuitBreakerStorage> CreateCircuitBreaker()
         {
-            var settings = new RedisCircuitBreakerStorageSettings("127.0.0.1", 0);
-            var cb01 = new CircuitBreakerStorage(settings);
+            var cb01 = new CircuitBreakerStorage("127.0.0.1", 0);
             await cb01.InitializeFor<TestCircuitBreaker>();
             AddToDisposable(Disposable.Create(() =>
             {

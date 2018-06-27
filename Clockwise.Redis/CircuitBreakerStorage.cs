@@ -7,17 +7,20 @@ namespace Clockwise.Redis
 {
     public sealed class CircuitBreakerStorage : ICircuitBreakerStorage, IDisposable
     {
-        private readonly RedisCircuitBreakerStorageSettings settings;
+        private readonly string connectionString;
+        private readonly int dbId;
+
         private IDatabase db;
         private ISubscriber subscriber;
         private readonly ConcurrentDictionary<string, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<string, CircuitBreakerStoragePartition>();
 
-        public CircuitBreakerStorage(RedisCircuitBreakerStorageSettings settings)
+        public CircuitBreakerStorage(string connectionString, int dbId)
         {
-            this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            this.connectionString = connectionString;
+            this.dbId = dbId;
 
             LazyConnection
-                = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(settings.ConnectionString));
+                = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(connectionString));
         }
 
         private Lazy<ConnectionMultiplexer> LazyConnection { get; set; }
@@ -25,14 +28,14 @@ namespace Clockwise.Redis
         public async Task InitializeFor<T>() where T : CircuitBreaker<T>
         {
             var connection = LazyConnection.Value;
-            db = connection.GetDatabase(settings.DbId);
+            db = connection.GetDatabase(dbId);
             subscriber = connection.GetSubscriber();
 
 
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
 
@@ -49,7 +52,7 @@ namespace Clockwise.Redis
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
 
@@ -60,7 +63,7 @@ namespace Clockwise.Redis
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
 
@@ -72,7 +75,7 @@ namespace Clockwise.Redis
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
 
@@ -92,10 +95,15 @@ namespace Clockwise.Redis
 
         public IDisposable Subscribe<T>(CircuitBreakerStorageSubscriber subscriber) where T : CircuitBreaker<T>
         {
+            if (subscriber == null)
+            {
+                throw new ArgumentNullException(nameof(subscriber));
+            }
+
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, settings.DbId, db);
+                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
 
