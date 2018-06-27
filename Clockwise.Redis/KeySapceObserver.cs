@@ -5,31 +5,33 @@ using StackExchange.Redis;
 
 namespace Clockwise.Redis
 {
-    public sealed class KeySpaceObserver : IObservable<(string key, string operation)>, IDisposable
+    internal delegate void KeySpaceNotificationHandler(string key, string operation);
+
+    internal class KeySpaceObserver : IDisposable
     {
         private readonly ISubscriber subscriber;
         private readonly string notificationChannel;
-        private readonly ConcurrentSet<IObserver<(string key, string operation)>> observers;
-        public KeySpaceObserver(int dbId, string key,  ISubscriber subscriber)
+        private readonly ConcurrentSet<KeySpaceNotificationHandler> handlers;
+        public KeySpaceObserver(int dbId, string key, ISubscriber subscriber)
         {
             this.subscriber = subscriber;
-            observers = new ConcurrentSet<IObserver<(string key, string operation)>>();
+            handlers = new ConcurrentSet<KeySpaceNotificationHandler>();
             var keyToSubscribe = string.IsNullOrWhiteSpace(key) ? "*" : key;
             notificationChannel = $"__keyspace@{dbId}__:{keyToSubscribe}";
         }
 
         public async Task Initialize()
         {
-            await subscriber.SubscribeAsync(notificationChannel, Handler);
+            await subscriber.SubscribeAsync(notificationChannel, NotificationHandler);
         }
 
-        private void Handler(RedisChannel channel, RedisValue notificationType)
+        private void NotificationHandler(RedisChannel channel, RedisValue notificationType)
         {
             var key = GetKey(channel);
 
-            foreach (var observer in observers)
+            foreach (var observer in handlers)
             {
-                observer.OnNext((key,notificationType));
+                observer(key, notificationType);
 
             }
         }
@@ -46,18 +48,15 @@ namespace Clockwise.Redis
         }
         public void Dispose()
         {
-           subscriber.Unsubscribe(notificationChannel, Handler);
-            foreach (var observer in observers)
-            {
-                observer.OnCompleted();
-            }
+            subscriber.Unsubscribe(notificationChannel, NotificationHandler);
+            handlers.Clear();
         }
 
-        public IDisposable Subscribe(IObserver<(string key, string operation)> observer)
+        public IDisposable Subscribe(KeySpaceNotificationHandler notificationHandler)
         {
-            if (observer == null) throw new ArgumentNullException(nameof(observer));
-            observers.TryAdd(observer);
-            return Disposable.Create(() => { observers.TryRemove(observer); });
+            if (notificationHandler == null) throw new ArgumentNullException(nameof(notificationHandler));
+            handlers.TryAdd(notificationHandler);
+            return Disposable.Create(() => { handlers.TryRemove(notificationHandler); });
         }
     }
 }

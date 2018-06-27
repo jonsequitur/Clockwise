@@ -9,10 +9,11 @@ using static System.String;
 
 namespace Clockwise.Redis
 {
-    internal class CircuitBreakerStoragePartition : IObserver<(string key, string operation)>, IObservable<CircuitBreakerStateDescriptor>, IDisposable
+   
+    internal class CircuitBreakerStoragePartition : IDisposable
     {
         private static readonly JsonSerializerSettings JsonSerializationSettings;
-        private readonly ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>> observers;
+        private readonly ConcurrentSet<CircuitBreakerStateDescriptorSubscriber> subscribers;
         private CircuitBreakerStateDescriptor stateDescriptor;
         private string lastSerialisedState;
         private readonly string key;
@@ -37,7 +38,7 @@ namespace Clockwise.Redis
             this.key = key;
             this.dbId = dbId;
             this.db = db;
-            observers = new ConcurrentSet<IObserver<CircuitBreakerStateDescriptor>>();
+            subscribers = new ConcurrentSet<CircuitBreakerStateDescriptorSubscriber>();
         }
 
         public async Task SignalFailureAsync(TimeSpan expiry)
@@ -110,23 +111,18 @@ namespace Clockwise.Redis
         public async Task Initialize(ISubscriber subscriber)
         {
             keySpaceObserver = new KeySpaceObserver(dbId, key, subscriber);
-            keySpaceSubscription = keySpaceObserver.Subscribe(this);
+            keySpaceSubscription = keySpaceObserver.Subscribe(KeySpaceNotificationHandler);
             await keySpaceObserver.Initialize();
         }
-        void IObserver<(string key, string operation)>.OnCompleted()
-        {
-            keySpaceSubscription?.Dispose();
-            keySpaceSubscription = null;
-        }
 
-        void IObserver<(string key, string operation)>.OnError(Exception error)
+        private void KeySpaceNotificationHandler(string target, string operation)
         {
-            throw new NotImplementedException();
-        }
+            if (key != target)
+            {
+                return;
 
-        void IObserver<(string key, string operation)>.OnNext((string key, string operation) value)
-        {
-            switch (value.operation)
+            }
+            switch (operation)
             {
                 case "expired":
                 {
@@ -142,12 +138,12 @@ namespace Clockwise.Redis
                         var desc = task.Result;
                         stateDescriptor = desc;
                         lastSerialisedState = JsonConvert.SerializeObject(stateDescriptor, JsonSerializationSettings);
-                        foreach (var observer in observers) observer.OnNext(desc);
+                        foreach (var observer in subscribers) observer(desc);
                     });
                     break;
             }
-
         }
+
         public void Dispose()
         {
             keySpaceSubscription?.Dispose();
@@ -157,11 +153,11 @@ namespace Clockwise.Redis
             keySpaceObserver = null;
         }
 
-        public IDisposable Subscribe(IObserver<CircuitBreakerStateDescriptor> observer)
+        public IDisposable Subscribe(CircuitBreakerStateDescriptorSubscriber subscriber)
         {
-            if (observer == null) throw new ArgumentNullException(nameof(observer));
-            observers.TryAdd(observer);
-            return Disposable.Create(() => observers.TryRemove(observer));
+            if (subscriber == null) throw new ArgumentNullException(nameof(subscriber));
+            subscribers.TryAdd(subscriber);
+            return Disposable.Create(() => subscribers.TryRemove(subscriber));
         }
     }
 }

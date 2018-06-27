@@ -22,5 +22,10 @@ namespace Clockwise
         {
             return GetEnumerator();
         }
+
+        public void Clear()
+        {
+            dictionary.Clear();
+        }
     }
 }

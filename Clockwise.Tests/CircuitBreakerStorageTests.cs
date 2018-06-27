@@ -24,11 +24,11 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
+            var stateDescriptor = await cb01.GetLastStateAsync<T>();
             stateDescriptor.Should().NotBeNull();
-            await cb01.SignalFailureForAsync<T>(2.Seconds());
+            await cb01.SignalFailureAsync<T>(2.Seconds());
             await clock.Wait(1.Seconds());
-            stateDescriptor = await cb01.GetLastStateOfAsync<T>();
+            stateDescriptor = await cb01.GetLastStateAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.Open);
         }
 
@@ -38,11 +38,11 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            await cb01.SignalFailureForAsync<T>(2.Seconds());
+            await cb01.SignalFailureAsync<T>(2.Seconds());
             await clock.Wait(1.Seconds());
-            await cb01.SignalSuccessForAsync<T>();
+            await cb01.SignalSuccessAsync<T>();
             await clock.Wait(1.Seconds());
-            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
+            var stateDescriptor = await cb01.GetLastStateAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 
@@ -51,15 +51,15 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            await cb01.SignalFailureForAsync<T>(TimeSpan.FromSeconds(2));
+            await cb01.SignalFailureAsync<T>(TimeSpan.FromSeconds(2));
             await clock.Wait(1.Seconds());
-            await cb01.SignalSuccessForAsync<T>();
+            await cb01.SignalSuccessAsync<T>();
             await clock.Wait(1.Seconds());
-            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
+            var stateDescriptor = await cb01.GetLastStateAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
-            await cb01.SignalSuccessForAsync<T>();
+            await cb01.SignalSuccessAsync<T>();
             await clock.Wait(1.Seconds());
-            stateDescriptor = await cb01.GetLastStateOfAsync<T>();
+            stateDescriptor = await cb01.GetLastStateAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
         }
         [Fact]
@@ -67,15 +67,15 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            await cb01.SignalFailureForAsync<T>(2.Seconds());
+            await cb01.SignalFailureAsync<T>(2.Seconds());
             await clock.Wait(1.Seconds());
-            await cb01.SignalSuccessForAsync<T>();
+            await cb01.SignalSuccessAsync<T>();
             await clock.Wait(1.Seconds());
-            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
+            var stateDescriptor = await cb01.GetLastStateAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
-            await cb01.SignalFailureForAsync<T>(2.Seconds());
+            await cb01.SignalFailureAsync<T>(2.Seconds());
             await clock.Wait(1.Seconds());
-            stateDescriptor = await cb01.GetLastStateOfAsync<T>();
+            stateDescriptor = await cb01.GetLastStateAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.Open);
         }
 
@@ -84,9 +84,9 @@ namespace Clockwise.Tests
         {
             var cb01 = await CreateCircuitBreaker();
             var clock = GetClock();
-            await cb01.SignalFailureForAsync<T>(1.Seconds());
+            await cb01.SignalFailureAsync<T>(1.Seconds());
             await clock.Wait(2.Seconds());
-            var stateDescriptor = await cb01.GetLastStateOfAsync<T>();
+            var stateDescriptor = await cb01.GetLastStateAsync<T>();
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 

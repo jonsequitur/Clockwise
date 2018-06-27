@@ -37,12 +37,12 @@ namespace Clockwise.Redis
             await partition.Initialize(subscriber);
         }
 
-        private string GetKey<T>()
+        private static string GetKey<T>()
         {
             return $"{typeof(T).Name}.circuitBreaker";
         }
   
-        public Task<CircuitBreakerStateDescriptor> GetLastStateOfAsync<T>() where T : CircuitBreaker<T>
+        public Task<CircuitBreakerStateDescriptor> GetLastStateAsync<T>() where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
@@ -53,7 +53,7 @@ namespace Clockwise.Redis
 
             return partition.GetLastStateAsync();
         }
-        public  Task SignalFailureForAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
+        public  Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
@@ -65,7 +65,7 @@ namespace Clockwise.Redis
             return partition.SignalFailureAsync(expiry);
         }
 
-        public Task SignalSuccessForAsync<T>() where T : CircuitBreaker<T>
+        public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
@@ -84,7 +84,7 @@ namespace Clockwise.Redis
             connection = null;
         }
 
-        public IDisposable Subscribe<T>(IObserver<CircuitBreakerStateDescriptor> observer) where T : CircuitBreaker<T>
+        public IDisposable Subscribe<T>(CircuitBreakerStateDescriptorSubscriber subscriber) where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
@@ -93,7 +93,7 @@ namespace Clockwise.Redis
                 return keyPartition;
             });
 
-            return partition.Subscribe(observer);
+            return partition.Subscribe(subscriber);
         }
     }
 }

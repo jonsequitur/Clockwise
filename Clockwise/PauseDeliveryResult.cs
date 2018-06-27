@@ -4,11 +4,11 @@ namespace Clockwise
 {
     public class PauseDeliveryResult<T> : CommandDeliveryResult<T>
     {
-        public TimeSpan PausePeriod { get; }
+        public TimeSpan Duration { get; }
 
-        public PauseDeliveryResult(ICommandDelivery<T> delivery, TimeSpan pausePeriod) : base(delivery)
+        public PauseDeliveryResult(ICommandDelivery<T> delivery, TimeSpan duration) : base(delivery)
         {
-            PausePeriod = pausePeriod;
+            Duration = duration;
         }
     }
 }

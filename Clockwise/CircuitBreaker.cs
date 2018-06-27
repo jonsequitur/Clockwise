@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public abstract class CircuitBreaker<T> : IObserver<CircuitBreakerStateDescriptor>
+    public abstract class CircuitBreaker<T> : IDisposable
     where T : CircuitBreaker<T>
     {
         private readonly ICircuitBreakerStorage storage;
@@ -14,23 +14,19 @@ namespace Clockwise
         protected CircuitBreaker(ICircuitBreakerStorage storage)
         {
             this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
-            storageSubscription = this.storage.Subscribe<T>(this);
+            storageSubscription = this.storage.Subscribe<T>(Subscriber);
         }
-        
+
+        private void Subscriber(CircuitBreakerStateDescriptor circuitbreakerstatedescriptor) => stateDescriptor = circuitbreakerstatedescriptor;
+
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
         {
-            return stateDescriptor == null ? storage.GetLastStateOfAsync<T>() : Task.FromResult(stateDescriptor);
+            return stateDescriptor == null ? storage.GetLastStateAsync<T>() : Task.FromResult(stateDescriptor);
         }
 
-        public async Task SignalSuccess()
-        {
-            await storage.SignalSuccessForAsync<T>();
-        }
+        public async Task SignalSuccess() => await storage.SignalSuccessAsync<T>();
 
-        public async Task SignalFailure(TimeSpan expiry)
-        {
-            await storage.SignalFailureForAsync<T>(expiry);
-        }
+        public async Task SignalFailure(TimeSpan expiry) => await storage.SignalFailureAsync<T>(expiry);
 
         public void Dispose()
         {
@@ -38,20 +34,9 @@ namespace Clockwise
             setStateSubscription = null;
             storageSubscription?.Dispose();
             storageSubscription = null;
-
+            OnDispose();
         }
 
-        void IObserver<CircuitBreakerStateDescriptor>.OnCompleted()
-        {
-        }
-
-        void IObserver<CircuitBreakerStateDescriptor>.OnError(Exception error)
-        {
-        }
-
-        void IObserver<CircuitBreakerStateDescriptor>.OnNext(CircuitBreakerStateDescriptor value)
-        {
-            stateDescriptor = value;
-        }
+        protected virtual void OnDispose() {}
     }
 }

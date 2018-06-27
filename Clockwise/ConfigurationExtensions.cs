@@ -91,7 +91,7 @@ namespace Clockwise
                             switch (deliveryResult)
                             {
                                 case PauseDeliveryResult<TChannel> pause:
-                                    await cb.SignalFailure(pause.PausePeriod);
+                                    await cb.SignalFailure(pause.Duration);
                                     break;
                                 default:
                                     await cb.SignalSuccess();
