@@ -15,7 +15,7 @@ namespace Clockwise.Redis
         private static readonly JsonSerializerSettings JsonSerializationSettings;
         private readonly ConcurrentSet<CircuitBreakerStorageSubscriber> subscribers;
         private CircuitBreakerStateDescriptor stateDescriptor;
-        private string lastSerialisedState;
+        private string lastSerializedState;
         private readonly string key;
         private readonly int dbId;
         private readonly IDatabase db;
@@ -61,17 +61,17 @@ namespace Clockwise.Redis
         public async Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
         {
             var serialised = await db.StringGetAsync(key);
-            lastSerialisedState = serialised.HasValue ? serialised.ToString() : Empty;
+            lastSerializedState = serialised.HasValue ? serialised.ToString() : Empty;
 
             if (IsNullOrWhiteSpace(serialised))
             {
                 var newState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(),
                     TimeSpan.FromMinutes(1));
-                lastSerialisedState = await Transition(lastSerialisedState,
+                lastSerializedState = await Transition(lastSerializedState,
                     JsonConvert.SerializeObject(newState, JsonSerializationSettings));
             }
 
-            return TryDeserialise(lastSerialisedState);
+            return TryDeserialise(lastSerializedState);
         }
 
         private static CircuitBreakerStateDescriptor TryDeserialise(string serialised)
@@ -82,11 +82,11 @@ namespace Clockwise.Redis
         }
         private async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry = null)
         {
-            var serialsied = JsonConvert.SerializeObject(targetState, JsonSerializationSettings);
+            var serialized = JsonConvert.SerializeObject(targetState, JsonSerializationSettings);
             var stateExpiry = targetState.State == CircuitBreakerState.Open && expiry == null
                 ? TimeSpan.FromMinutes(1)
                 : expiry;
-            await Transition(lastSerialisedState, serialsied, stateExpiry);
+            await Transition(lastSerializedState, serialized, stateExpiry);
         }
         private async Task<string> Transition(string fromState, string toState, TimeSpan? newStateExpiry = null)
         {
@@ -140,7 +140,7 @@ namespace Clockwise.Redis
                     {
                         var desc = task.Result;
                         stateDescriptor = desc;
-                        lastSerialisedState = JsonConvert.SerializeObject(stateDescriptor, JsonSerializationSettings);
+                        lastSerializedState = JsonConvert.SerializeObject(stateDescriptor, JsonSerializationSettings);
                         foreach (var observer in subscribers) observer(desc);
                     });
                     break;
@@ -150,10 +150,7 @@ namespace Clockwise.Redis
         public void Dispose()
         {
             keySpaceSubscription?.Dispose();
-            keySpaceSubscription = null;
-
             keySpaceObserver?.Dispose();
-            keySpaceObserver = null;
         }
 
         public IDisposable Subscribe(CircuitBreakerStorageSubscriber subscriber)

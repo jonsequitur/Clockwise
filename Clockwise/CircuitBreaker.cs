@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Clockwise
@@ -17,7 +18,7 @@ namespace Clockwise
             storageSubscription = this.storage.Subscribe<T>(CircuitBreakerStorageChanged);
         }
 
-        private void CircuitBreakerStorageChanged(CircuitBreakerStateDescriptor circuitbreakerstatedescriptor) => stateDescriptor = circuitbreakerstatedescriptor;
+        private void CircuitBreakerStorageChanged(CircuitBreakerStateDescriptor descriptor) => stateDescriptor = descriptor;
 
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
         {
@@ -31,7 +32,6 @@ namespace Clockwise
         public void Dispose()
         {
             storageSubscription?.Dispose();
-            storageSubscription = null;
             OnDispose();
         }
 
