@@ -5,7 +5,7 @@ using StackExchange.Redis;
 
 namespace Clockwise.Redis
 {
-    public sealed class CircuitBreakerStorage : ICircuitBreakerStorage, IDisposable
+    public sealed class CircuitBreakerBroker : ICircuitBreakerBroker, IDisposable
     {
         private readonly string connectionString;
         private readonly int dbId;
@@ -14,7 +14,7 @@ namespace Clockwise.Redis
         private ISubscriber subscriber;
         private readonly ConcurrentDictionary<string, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<string, CircuitBreakerStoragePartition>();
 
-        public CircuitBreakerStorage(string connectionString, int dbId)
+        public CircuitBreakerBroker(string connectionString, int dbId)
         {
             this.connectionString = connectionString;
             this.dbId = dbId;

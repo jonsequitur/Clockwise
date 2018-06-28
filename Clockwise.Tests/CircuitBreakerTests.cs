@@ -32,7 +32,7 @@ namespace Clockwise.Tests
                 var processed = new List<int>();
                 var cfg = new Configuration();
                 cfg = cfg
-                    .UseDependency<ICircuitBreakerStorage>(type => new InMemoryCircuitBreakerStorage())
+                    .UseDependency<ICircuitBreakerBroker>(type => new InMemoryCircuitBreakerBroker())
                     .UseInMemoryScheduling()
                    .UseCircuitbreaker<int, TestCircuitBreaker>();
 

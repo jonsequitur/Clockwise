@@ -187,7 +187,7 @@ namespace Clockwise
 
         public static Configuration UseInMemeoryCircuitBreakerStorage(this Configuration configuration)
         {
-            configuration.Container.TryRegisterSingle<ICircuitBreakerStorage>(_ => new InMemoryCircuitBreakerStorage());
+            configuration.Container.TryRegisterSingle<ICircuitBreakerBroker>(_ => new InMemoryCircuitBreakerBroker());
 
             return configuration;
         }

@@ -11,7 +11,7 @@ namespace Clockwise.Tests
     where T : CircuitBreaker<T>
     {
         private readonly CompositeDisposable disposables = new CompositeDisposable();
-        protected abstract Task<ICircuitBreakerStorage> CreateCircuitBreaker();
+        protected abstract Task<ICircuitBreakerBroker> CreateCircuitBreaker();
 
         protected abstract IClock GetClock();
         protected void AddToDisposable(IDisposable disposable)

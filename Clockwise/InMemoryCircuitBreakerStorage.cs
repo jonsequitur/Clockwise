@@ -5,7 +5,7 @@ using Pocket;
 
 namespace Clockwise
 {
-    public sealed class InMemoryCircuitBreakerStorage : ICircuitBreakerStorage
+    public sealed class InMemoryCircuitBreakerBroker : ICircuitBreakerBroker
     {
 
         private readonly ConcurrentDictionary<Type, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<Type, CircuitBreakerStoragePartition>();

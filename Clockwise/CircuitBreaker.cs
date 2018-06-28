@@ -7,27 +7,27 @@ namespace Clockwise
     public abstract class CircuitBreaker<T> : IDisposable
     where T : CircuitBreaker<T>
     {
-        private readonly ICircuitBreakerStorage storage;
+        private readonly ICircuitBreakerBroker broker;
 
         private IDisposable storageSubscription;
         private CircuitBreakerStateDescriptor stateDescriptor;
 
-        protected CircuitBreaker(ICircuitBreakerStorage storage)
+        protected CircuitBreaker(ICircuitBreakerBroker broker)
         {
-            this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
-            storageSubscription = this.storage.Subscribe<T>(CircuitBreakerStorageChanged);
+            this.broker = broker ?? throw new ArgumentNullException(nameof(broker));
+            storageSubscription = this.broker.Subscribe<T>(CircuitBreakerStorageChanged);
         }
 
         private void CircuitBreakerStorageChanged(CircuitBreakerStateDescriptor descriptor) => stateDescriptor = descriptor;
 
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
         {
-            return stateDescriptor == null ? storage.GetLastStateAsync<T>() : Task.FromResult(stateDescriptor);
+            return stateDescriptor == null ? broker.GetLastStateAsync<T>() : Task.FromResult(stateDescriptor);
         }
 
-        public async Task SignalSuccess() => await storage.SignalSuccessAsync<T>();
+        public async Task SignalSuccess() => await broker.SignalSuccessAsync<T>();
 
-        public async Task SignalFailure(TimeSpan expiry) => await storage.SignalFailureAsync<T>(expiry);
+        public async Task SignalFailure(TimeSpan expiry) => await broker.SignalFailureAsync<T>(expiry);
 
         public void Dispose()
         {

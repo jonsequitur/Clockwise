@@ -4,9 +4,9 @@ namespace Clockwise.Tests
 {
     public class InMemoryCircuitBreakerStorageTests : CircuitBreakerStorageTests<TestCircuitBreaker>
     {
-        protected override Task<ICircuitBreakerStorage> CreateCircuitBreaker()
+        protected override Task<ICircuitBreakerBroker> CreateCircuitBreaker()
         {
-            ICircuitBreakerStorage cb = new InMemoryCircuitBreakerStorage();
+            ICircuitBreakerBroker cb = new InMemoryCircuitBreakerBroker();
             return Task.FromResult(cb);
         }
 
