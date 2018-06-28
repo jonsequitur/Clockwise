@@ -51,17 +51,16 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreaker<TChannel, TCircuitBreaker, THalfOpenStatePolicy>(this Configuration configuration)
+        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker, THalfOpenStatePolicy>(this Configuration configuration)
             where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
-            where THalfOpenStatePolicy : HalfOpenStatePolicy<TChannel>
+            where THalfOpenStatePolicy : HalfOpenStatePolicy<TCommand>
         {
-            configuration.Container.AfterCreating<ICommandReceiver<TChannel>>(receiver =>
+            configuration.Container.AfterCreating<ICommandReceiver<TCommand>>(receiver =>
             {
                 TCircuitBreaker cb;
                 try
                 {
                     cb = configuration.Container.Resolve<TCircuitBreaker>();
-
                 }
                 catch (Exception e)
                 {
@@ -80,7 +79,7 @@ namespace Clockwise
                     throw new ConfigurationException($"Failure during creation of HalfOpen state policy {typeof(THalfOpenStatePolicy).Name}", e);
                 }
 
-                async Task<ICommandDeliveryResult> Receive(HandleCommand<TChannel> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TChannel>, TimeSpan?, Task<ICommandDeliveryResult>> subscribe)
+                async Task<ICommandDeliveryResult> Receive(HandleCommand<TCommand> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TCommand>, TimeSpan?, Task<ICommandDeliveryResult>> subscribe)
                 {
                     return await subscribe(async delivery =>
                     {
@@ -89,7 +88,7 @@ namespace Clockwise
                     }, timeout);
                 }
 
-                IDisposable Subscribe(HandleCommand<TChannel> handle, Func<HandleCommand<TChannel>, IDisposable> subscribe)
+                IDisposable Subscribe(HandleCommand<TCommand> handle, Func<HandleCommand<TCommand>, IDisposable> subscribe)
                 {
                     return subscribe(async delivery =>
                     {
@@ -109,9 +108,10 @@ namespace Clockwise
                             {
                                 deliveryResult = await handle(delivery);
                             }
+
                             switch (deliveryResult)
                             {
-                                case PauseDeliveryResult<TChannel> pause:
+                                case PauseDeliveryResult<TCommand> pause:
                                     await cb.SignalFailure(pause.Duration);
                                     break;
                                 default:
