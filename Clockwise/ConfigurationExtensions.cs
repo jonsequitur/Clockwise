@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Pocket;
 
 namespace Clockwise
@@ -50,6 +51,93 @@ namespace Clockwise
             return configuration;
         }
 
+        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker, THalfOpenStatePolicy>(this Configuration configuration)
+            where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
+            where THalfOpenStatePolicy : HalfOpenStatePolicy<TCommand>
+        {
+            configuration.Container.AfterCreating<ICommandReceiver<TCommand>>(receiver =>
+            {
+                TCircuitBreaker cb;
+                try
+                {
+                    cb = configuration.Container.Resolve<TCircuitBreaker>();
+                }
+                catch (Exception e)
+                {
+                    throw new ConfigurationException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}", e);
+                }
+
+                THalfOpenStatePolicy hosp;
+
+                try
+                {
+                    hosp = configuration.Container.Resolve<THalfOpenStatePolicy>();
+
+                }
+                catch (Exception e)
+                {
+                    throw new ConfigurationException($"Failure during creation of HalfOpen state policy {typeof(THalfOpenStatePolicy).Name}", e);
+                }
+
+                async Task<ICommandDeliveryResult> Receive(HandleCommand<TCommand> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TCommand>, TimeSpan?, Task<ICommandDeliveryResult>> subscribe)
+                {
+                    return await subscribe(async delivery =>
+                    {
+                        var result = await handlerDelegate(delivery);
+                        return result;
+                    }, timeout);
+                }
+
+                IDisposable Subscribe(HandleCommand<TCommand> handle, Func<HandleCommand<TCommand>, IDisposable> subscribe)
+                {
+                    return subscribe(async delivery =>
+                    {
+                        {
+                            var stateDescriptor = await cb.GetLastStateAsync();
+                            if (stateDescriptor.State == CircuitBreakerState.Open)
+                            {
+                                return delivery.Retry(stateDescriptor.TimeToLive);
+                            }
+
+                            ICommandDeliveryResult deliveryResult;
+                            if (stateDescriptor.State == CircuitBreakerState.HalfOpen)
+                            {
+                                deliveryResult = await hosp.Handle(handle, delivery);
+                            }
+                            else
+                            {
+                                deliveryResult = await handle(delivery);
+                            }
+
+                            switch (deliveryResult)
+                            {
+                                case PauseDeliveryResult<TCommand> pause:
+                                    await cb.SignalFailure(pause.Duration);
+                                    break;
+                                default:
+                                    await cb.SignalSuccess();
+                                    break;
+                            }
+
+                            return deliveryResult;
+                        }
+                    });
+                }
+
+                var instrumented = receiver.UseMiddleware(
+                    receive: Receive,
+                    subscribe: Subscribe);
+
+                return instrumented;
+            });
+            return configuration;
+        }
+
+        public static Configuration UseCircuitbreaker<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
+        {
+            return configuration.UseCircuitbreaker<TChannel, TCircuitBreaker, PassThroughPolicy<TChannel>>();
+        }
+
         public static Configuration UseDependencies(
             this Configuration configuration,
             Func<Type, Func<object>> strategy)
@@ -57,7 +145,7 @@ namespace Clockwise
             configuration.Container
                          .AddStrategy(t =>
                          {
-                             Func<object> resolveFunc = strategy(t);
+                             var resolveFunc = strategy(t);
                              if (resolveFunc != null)
                              {
                                  return container => resolveFunc();
@@ -97,6 +185,12 @@ namespace Clockwise
             return configuration;
         }
 
+        public static Configuration UseInMemeoryCircuitBreakerStorage(this Configuration configuration)
+        {
+            configuration.Container.TryRegisterSingle<ICircuitBreakerBroker>(_ => new InMemoryCircuitBreakerBroker());
+
+            return configuration;
+        }
         public static Configuration UseInMemoryScheduling(
             this Configuration configuration)
         {
@@ -158,7 +252,7 @@ namespace Clockwise
                                 configuration,
                                 commandType,
                                 container,
-                                (dynamic) bus);
+                                (dynamic)bus);
 
                             return bus;
                         });

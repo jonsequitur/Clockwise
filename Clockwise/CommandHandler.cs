@@ -5,7 +5,7 @@ namespace Clockwise
 {
     public static class CommandHandler
     {
-        public static ICommandHandler<T> Create<T>(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle) =>
+        public static ICommandHandler<T> Create<T>(HandleCommand<T> handle) =>
             new AnonymousCommandHandler<T>(handle);
 
         public static ICommandHandler<T> Create<T>(Func<ICommandDelivery<T>, ICommandDeliveryResult> handle) =>
@@ -55,7 +55,7 @@ namespace Clockwise
                 {
                     var result = await next(delivery);
 
-                    Log.Completion(operation, delivery, result);
+                    Log.Handled(operation, delivery, result);
 
                     return result;
                 }
@@ -70,20 +70,22 @@ namespace Clockwise
                               async d => await handler.Handle(d)));
     }
 
+    public delegate Task<ICommandDeliveryResult> HandleCommand<in T> (ICommandDelivery<T> delivery);
+
     public delegate Task<ICommandDeliveryResult> CommandHandlingMiddleware<T>(
         ICommandDelivery<T> delivery,
-        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> next);
+        HandleCommand<T> handle);
 
     public delegate Task CommandSchedulingMiddleware<T>(
         ICommandDelivery<T> delivery,
-        Func<ICommandDelivery<T>, Task> next);
+        Func<ICommandDelivery<T>, Task> schedule);
 
     public delegate IDisposable CommandSubscribingMiddleware<T>(
-        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext,
-        Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, IDisposable> next);
+        HandleCommand<T> handle,
+        Func<HandleCommand<T>, IDisposable> subscribe);
 
     public delegate Task<ICommandDeliveryResult> CommandReceivingMiddleware<T>(
-        Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
+        HandleCommand<T> handle,
         TimeSpan? timeout,
-        Func<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>, TimeSpan?, Task<ICommandDeliveryResult>> next);
+        Func<HandleCommand<T>, TimeSpan?, Task<ICommandDeliveryResult>> receive);
 }

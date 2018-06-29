@@ -7,13 +7,13 @@ using Pocket;
 namespace Clockwise
 {
     public class InMemoryCommandBus<T> :
-        ICommandReceiver<T>,
-        ICommandScheduler<T>,
-        IDisposable
+           ICommandReceiver<T>,
+           ICommandScheduler<T>,
+           IDisposable
     {
         private readonly VirtualClock clock;
 
-        private readonly List<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>> subscribers = new List<Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>>();
+        private readonly List<HandleCommand<T>> subscribers = new List<HandleCommand<T>>();
 
         private readonly ConcurrentDictionary<string, ICommandDelivery<T>> pendingDeliveries = new ConcurrentDictionary<string, ICommandDelivery<T>>();
 
@@ -42,7 +42,7 @@ namespace Clockwise
         }
 
         public async Task<ICommandDeliveryResult> Receive(
-            Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> handle,
+            HandleCommand<T> handle,
             TimeSpan? timeout = null)
         {
             timeout = timeout ??
@@ -75,7 +75,7 @@ namespace Clockwise
             return result;
         }
 
-        public IDisposable Subscribe(Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>> onNext)
+        public IDisposable Subscribe(HandleCommand<T> handle)
         {
             lock (subscribers)
             {
@@ -84,14 +84,14 @@ namespace Clockwise
                     ThrowObjectDisposed();
                 }
 
-                subscribers.Add(onNext);
+                subscribers.Add(handle);
             }
 
             return Disposable.Create(() =>
             {
                 lock (subscribers)
                 {
-                    subscribers.Remove(onNext);
+                    subscribers.Remove(handle);
                 }
             });
         }
@@ -129,9 +129,9 @@ namespace Clockwise
             }
         }
 
-        private Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>[] GetReceivers()
+        private HandleCommand<T>[] GetReceivers()
         {
-            Func<ICommandDelivery<T>, Task<ICommandDeliveryResult>>[] receivers;
+            HandleCommand<T>[] receivers;
 
             lock (subscribers)
             {

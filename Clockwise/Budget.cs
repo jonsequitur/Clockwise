@@ -45,10 +45,10 @@ namespace Clockwise
         public DateTimeOffset StartTime { get; }
 
         public void Cancel() => CancellationTokenSource.Cancel();
-
+       
         public void RecordEntry([CallerMemberName] string name = null) =>
             entries.Add(new BudgetEntry(name, this));
-
+       
         public void RecordEntryAndThrowIfBudgetExceeded([CallerMemberName] string name = null)
         {
             RecordEntry(name);
