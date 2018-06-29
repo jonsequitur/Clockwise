@@ -98,6 +98,9 @@ namespace Clockwise
             return partition.Subscribe(subscriber);
         }
 
-
+        public Task InitializeFor<T>() where T : CircuitBreaker<T>
+        {
+            return Task.CompletedTask;
+        }
     }
 }

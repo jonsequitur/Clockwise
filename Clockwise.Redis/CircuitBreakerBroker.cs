@@ -51,32 +51,16 @@ namespace Clockwise.Redis
 
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync<T>() where T : CircuitBreaker<T>
         {
-            var keySpace = GetKey<T>();
-            var partition = partitions.GetOrAdd(keySpace, redisKey =>
-            {
-                var setup = lazySetup.Value;
-                var db = setup.db;
-                var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
-                return keyPartition;
-            });
-
+            var partition = GetPartition<T>();
             return partition.GetLastStateAsync();
         }
         public Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
         {
-            var keySpace = GetKey<T>();
-            var partition = partitions.GetOrAdd(keySpace, redisKey =>
-            {
-                var setup = lazySetup.Value;
-                var db = setup.db;
-                var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
-                return keyPartition;
-            });
-
+            var partition = GetPartition<T>();
             return partition.SignalFailureAsync(expiry);
         }
 
-        public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
+        private CircuitBreakerBrokerPartition GetPartition<T>() where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
@@ -86,7 +70,12 @@ namespace Clockwise.Redis
                 var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
                 return keyPartition;
             });
+            return partition;
+        }
 
+        public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
+        {
+            var partition = GetPartition<T>();
             return partition.SignalSuccessAsync();
         }
 
