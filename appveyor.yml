@@ -16,6 +16,8 @@ after_build:
       dotnet pack .\Clockwise\Clockwise.csproj --no-build /p:VersionPrefix=%APPVEYOR_BUILD_VERSION%
   - cmd: >-
       dotnet pack .\Clockwise.AzureServiceBus\Clockwise.AzureServiceBus.csproj --no-build /p:VersionPrefix=%APPVEYOR_BUILD_VERSION%
+  - cmd: >-
+      dotnet pack .\Clockwise.Redis\Clockwise.Redis.csproj --no-build /p:VersionPrefix=%APPVEYOR_BUILD_VERSION%
 
 test_script:
   - cmd: dotnet test .\Clockwise.Tests\Clockwise.Tests.csproj
