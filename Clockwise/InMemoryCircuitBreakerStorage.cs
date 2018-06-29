@@ -92,10 +92,10 @@ namespace Clockwise
             return partition.SignalSuccessAsync();
         }
 
-        public IDisposable Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
+        public void Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
         {
             var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition());
-            return partition.Subscribe(subscriber);
+            partition.Subscribe(subscriber);
         }
 
         public Task InitializeFor<T>() where T : CircuitBreaker<T>

@@ -12,6 +12,7 @@ namespace Clockwise.Redis.Tests
         {
             var db = 1;
             var cb01 = new CircuitBreakerBroker("127.0.0.1", db);
+            AddToDisposable(cb01);
             AddToDisposable(Disposable.Create(() =>
             {
                 var connection = ConnectionMultiplexer.Connect("127.0.0.1");

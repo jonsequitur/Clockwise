@@ -111,9 +111,12 @@ namespace Clockwise.Redis
 
         public async Task Initialize(ISubscriber subscriber)
         {
-            keySpaceObserver = new KeySpaceObserver(dbId, key, subscriber);
-            keySpaceSubscription = keySpaceObserver.Subscribe(KeySpaceNotificationHandler);
-            await keySpaceObserver.Initialize();
+            if (keySpaceObserver == null)
+            {
+                keySpaceObserver = new KeySpaceObserver(dbId, key, subscriber);
+                keySpaceSubscription = keySpaceObserver.Subscribe(KeySpaceNotificationHandler);
+                await keySpaceObserver.Initialize();
+            }
         }
 
         private void KeySpaceNotificationHandler(string target, string operation)

@@ -51,7 +51,7 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker>(this Configuration configuration, HalfOpenStatePolicy<TCommand> halfOpenStatePolicy = null)
+        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker>(this Configuration configuration, ICircuitBreakerBroker circuitBreakerBroker = null, HalfOpenStatePolicy<TCommand> halfOpenStatePolicy = null)
             where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
         {
             configuration.Container.AfterCreating<ICommandReceiver<TCommand>>(receiver =>
@@ -69,7 +69,7 @@ namespace Clockwise
                 ICircuitBreakerBroker broker;
                 try
                 {
-                    broker = configuration.Container.Resolve<ICircuitBreakerBroker>();
+                    broker = circuitBreakerBroker ?? configuration.Container.Resolve<ICircuitBreakerBroker>();
                 }
                 catch (Exception e)
                 {

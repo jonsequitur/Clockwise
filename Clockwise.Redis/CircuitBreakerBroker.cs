@@ -79,7 +79,7 @@ namespace Clockwise.Redis
             return partition.SignalSuccessAsync();
         }
 
-        public IDisposable Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
+        public void Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
         {
             if (subscriber == null)
             {
@@ -95,7 +95,7 @@ namespace Clockwise.Redis
                 return keyPartition;
             });
 
-            return partition.Subscribe(subscriber);
+            disposables.Add(partition.Subscribe(subscriber));
         }
 
         public void Dispose()
