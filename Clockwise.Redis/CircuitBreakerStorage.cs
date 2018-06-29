@@ -1,36 +1,38 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Pocket;
 using StackExchange.Redis;
 
 namespace Clockwise.Redis
 {
     public sealed class CircuitBreakerBroker : ICircuitBreakerBroker, IDisposable
     {
-        private readonly string connectionString;
         private readonly int dbId;
-
-        private IDatabase db;
-        private ISubscriber subscriber;
+        private readonly CompositeDisposable disposables = new CompositeDisposable();
         private readonly ConcurrentDictionary<string, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<string, CircuitBreakerStoragePartition>();
+        private readonly Lazy<(ConnectionMultiplexer connection, IDatabase db, ISubscriber redisSubscriber)> lazySetup;
+        
 
         public CircuitBreakerBroker(string connectionString, int dbId)
         {
-            this.connectionString = connectionString;
             this.dbId = dbId;
-
-            LazyConnection
-                = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(connectionString));
+            lazySetup
+                = new Lazy<(ConnectionMultiplexer, IDatabase, ISubscriber)>(() =>
+                {
+                    var connection = ConnectionMultiplexer.Connect(connectionString);
+                    var subscriber = connection.GetSubscriber();
+                    disposables.Add(Disposable.Create(() => subscriber.UnsubscribeAll()));
+                    disposables.Add(connection);
+                    return (connection, connection.GetDatabase(dbId), subscriber);
+                });
         }
-
-        private Lazy<ConnectionMultiplexer> LazyConnection { get; set; }
 
         public async Task InitializeFor<T>() where T : CircuitBreaker<T>
         {
-            var connection = LazyConnection.Value;
-            db = connection.GetDatabase(dbId);
-            subscriber = connection.GetSubscriber();
-
+            var setup = lazySetup.Value;
+            var db = setup.db;
+            var redisSubscriber = setup.redisSubscriber;
 
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
@@ -39,7 +41,7 @@ namespace Clockwise.Redis
                 return keyPartition;
             });
 
-            await partition.Initialize(subscriber);
+            await partition.Initialize(redisSubscriber);
         }
 
         private static string GetKey<T>()
@@ -52,6 +54,8 @@ namespace Clockwise.Redis
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
+                var setup = lazySetup.Value;
+                var db = setup.db;
                 var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
@@ -63,6 +67,8 @@ namespace Clockwise.Redis
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
+                var setup = lazySetup.Value;
+                var db = setup.db;
                 var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
@@ -75,22 +81,13 @@ namespace Clockwise.Redis
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
+                var setup = lazySetup.Value;
+                var db = setup.db;
                 var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
 
             return partition.SignalSuccessAsync();
-        }
-
-        public void Dispose()
-        {
-            subscriber = null;
-            if (LazyConnection.IsValueCreated)
-            {
-                var connection = LazyConnection.Value;
-                LazyConnection = null;
-                connection?.Dispose();
-            }
         }
 
         public IDisposable Subscribe<T>(CircuitBreakerStorageSubscriber subscriber) where T : CircuitBreaker<T>
@@ -103,11 +100,18 @@ namespace Clockwise.Redis
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
+                var setup = lazySetup.Value;
+                var db = setup.db;
                 var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
                 return keyPartition;
             });
 
             return partition.Subscribe(subscriber);
+        }
+
+        public void Dispose()
+        {
+            disposables.Dispose();
         }
     }
 }
