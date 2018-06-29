@@ -6,7 +6,7 @@ using StackExchange.Redis;
 namespace Clockwise.Redis.Tests
 {
     
-    public class RedisCircuitBreakerStorageTests : CircuitBreakerStorageTests<TestCircuitBreaker>
+    public class RedisCircuitBreakerBrokerTests : CircuitBreakerBrokerTests<TestCircuitBreaker>
     {
         
         protected override async Task<ICircuitBreakerBroker> CreateCircuitBreaker()

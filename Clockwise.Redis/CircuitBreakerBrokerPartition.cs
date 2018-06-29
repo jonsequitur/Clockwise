@@ -10,10 +10,10 @@ using static System.String;
 namespace Clockwise.Redis
 {
    
-    internal class CircuitBreakerStoragePartition : IDisposable
+    internal class CircuitBreakerBrokerPartition : IDisposable
     {
         private static readonly JsonSerializerSettings JsonSerializationSettings;
-        private readonly ConcurrentSet<CircuitBreakerStorageSubscriber> subscribers;
+        private readonly ConcurrentSet<CircuitBreakerBrokerSubscriber> subscribers;
         private CircuitBreakerStateDescriptor stateDescriptor;
         private string lastSerializedState;
         private readonly string key;
@@ -22,14 +22,14 @@ namespace Clockwise.Redis
         private KeySpaceObserver keySpaceObserver;
         private IDisposable keySpaceSubscription;
 
-        static CircuitBreakerStoragePartition()
+        static CircuitBreakerBrokerPartition()
         {
             JsonSerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             JsonSerializationSettings.Converters.Add(new StringEnumConverter());
             JsonSerializationSettings.NullValueHandling = NullValueHandling.Ignore;
         }
 
-        public CircuitBreakerStoragePartition(string key, int dbId, IDatabase db)
+        public CircuitBreakerBrokerPartition(string key, int dbId, IDatabase db)
         {
             if (IsNullOrWhiteSpace(key))
             {
@@ -38,7 +38,7 @@ namespace Clockwise.Redis
             this.key = key;
             this.dbId = dbId;
             this.db = db;
-            subscribers = new ConcurrentSet<CircuitBreakerStorageSubscriber>();
+            subscribers = new ConcurrentSet<CircuitBreakerBrokerSubscriber>();
         }
 
         public async Task SignalFailureAsync(TimeSpan expiry)
@@ -153,7 +153,7 @@ namespace Clockwise.Redis
             keySpaceObserver?.Dispose();
         }
 
-        public IDisposable Subscribe(CircuitBreakerStorageSubscriber subscriber)
+        public IDisposable Subscribe(CircuitBreakerBrokerSubscriber subscriber)
         {
             if (subscriber == null) throw new ArgumentNullException(nameof(subscriber));
             subscribers.TryAdd(subscriber);

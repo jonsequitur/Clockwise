@@ -11,16 +11,16 @@ namespace Clockwise
         private readonly ConcurrentDictionary<Type, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<Type, CircuitBreakerStoragePartition>();
         private class CircuitBreakerStoragePartition
         {
-            private readonly ConcurrentSet<CircuitBreakerStorageSubscriber> subscribers;
+            private readonly ConcurrentSet<CircuitBreakerBrokerSubscriber> subscribers;
             private CircuitBreakerStateDescriptor stateDescriptor;
 
             public CircuitBreakerStoragePartition()
             {
-                subscribers = new ConcurrentSet<CircuitBreakerStorageSubscriber>();
+                subscribers = new ConcurrentSet<CircuitBreakerBrokerSubscriber>();
                 stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(), TimeSpan.FromMinutes(2));
             }
 
-            public IDisposable Subscribe(CircuitBreakerStorageSubscriber subscriber)
+            public IDisposable Subscribe(CircuitBreakerBrokerSubscriber subscriber)
             {
                 if (subscriber == null) throw new ArgumentNullException(nameof(subscriber));
                 subscriber(stateDescriptor);
@@ -92,7 +92,7 @@ namespace Clockwise
             return partition.SignalSuccessAsync();
         }
 
-        public IDisposable Subscribe<T>(CircuitBreakerStorageSubscriber subscriber) where T : CircuitBreaker<T>
+        public IDisposable Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
         {
             var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition());
             return partition.Subscribe(subscriber);

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Clockwise.Tests
 {
-    public abstract class CircuitBreakerStorageTests<T> :  IDisposable
+    public abstract class CircuitBreakerBrokerTests<T> :  IDisposable
     where T : CircuitBreaker<T>
     {
         private readonly CompositeDisposable disposables = new CompositeDisposable();

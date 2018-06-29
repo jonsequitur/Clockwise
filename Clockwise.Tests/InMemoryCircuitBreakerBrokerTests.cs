@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 
 namespace Clockwise.Tests
 {
-    public class InMemoryCircuitBreakerStorageTests : CircuitBreakerStorageTests<TestCircuitBreaker>
+    public class InMemoryCircuitBreakerBrokerTests : CircuitBreakerBrokerTests<TestCircuitBreaker>
     {
         protected override Task<ICircuitBreakerBroker> CreateCircuitBreaker()
         {
