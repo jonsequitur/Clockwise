@@ -1,24 +1,22 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Clockwise
 {
-    public abstract class CircuitBreaker<T> : IDisposable
+    public abstract class CircuitBreaker<T>
     where T : CircuitBreaker<T>
     {
         private readonly ICircuitBreakerBroker broker;
 
-        private IDisposable storageSubscription;
         private CircuitBreakerStateDescriptor stateDescriptor;
 
         protected CircuitBreaker(ICircuitBreakerBroker broker)
         {
             this.broker = broker ?? throw new ArgumentNullException(nameof(broker));
-            storageSubscription = this.broker.Subscribe<T>(CircuitBreakerStorageChanged);
+            this.broker.Subscribe<T>(StateChanged);
         }
 
-        private void CircuitBreakerStorageChanged(CircuitBreakerStateDescriptor descriptor) => stateDescriptor = descriptor;
+        private void StateChanged(CircuitBreakerStateDescriptor descriptor) => stateDescriptor = descriptor;
 
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
         {
@@ -28,13 +26,5 @@ namespace Clockwise
         public async Task SignalSuccess() => await broker.SignalSuccessAsync<T>();
 
         public async Task SignalFailure(TimeSpan expiry) => await broker.SignalFailureAsync<T>(expiry);
-
-        public void Dispose()
-        {
-            storageSubscription?.Dispose();
-            OnDispose();
-        }
-
-        protected virtual void OnDispose() {}
     }
 }
