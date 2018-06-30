@@ -9,7 +9,6 @@ using static System.String;
 
 namespace Clockwise.Redis
 {
-   
     internal class CircuitBreakerBrokerPartition : IDisposable
     {
         private static readonly JsonSerializerSettings JsonSerializationSettings;
@@ -20,7 +19,7 @@ namespace Clockwise.Redis
         private readonly int dbId;
         private readonly IDatabase db;
         private KeySpaceObserver keySpaceObserver;
-        private IDisposable keySpaceSubscription;
+        private readonly CompositeDisposable disposables = new CompositeDisposable();
 
         static CircuitBreakerBrokerPartition()
         {
@@ -80,6 +79,7 @@ namespace Clockwise.Redis
                 ? null
                 : JsonConvert.DeserializeObject<CircuitBreakerStateDescriptor>(serialised, JsonSerializationSettings);
         }
+
         private async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry = null)
         {
             var serialized = JsonConvert.SerializeObject(targetState, JsonSerializationSettings);
@@ -88,6 +88,7 @@ namespace Clockwise.Redis
                 : expiry;
             await Transition(lastSerializedState, serialized, stateExpiry);
         }
+
         private async Task<string> Transition(string fromState, string toState, TimeSpan? newStateExpiry = null)
         {
             var setCommand = newStateExpiry == null ? $"redis.call(\'set\',\'{key}\',\'{toState}\')" : $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
@@ -95,10 +96,10 @@ namespace Clockwise.Redis
             var execution = (await db.ScriptEvaluateAsync(script))?.ToString();
             return execution;
         }
+
         private async Task<CircuitBreakerStateDescriptor> ReadDescriptor()
         {
-            var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Now(),
-                TimeSpan.FromMinutes(1));
+            var desc = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Now());
             var src = await db.StringGetAsync(key);
 
             if (!src.IsNullOrEmpty && !IsNullOrWhiteSpace(src))
@@ -109,12 +110,14 @@ namespace Clockwise.Redis
             return desc;
         }
 
-        public async Task Initialize(ISubscriber subscriber)
+        public async Task Initialize(ISubscriber redisSubscriber)
         {
             if (keySpaceObserver == null)
             {
-                keySpaceObserver = new KeySpaceObserver(dbId, key, subscriber);
-                keySpaceSubscription = keySpaceObserver.Subscribe(KeySpaceNotificationHandler);
+                keySpaceObserver = new KeySpaceObserver(dbId, key, redisSubscriber);
+                var keySpaceSubscription = keySpaceObserver.Subscribe(KeySpaceNotificationHandler);
+                disposables.Add(keySpaceObserver);
+                disposables.Add(keySpaceSubscription);
                 await keySpaceObserver.Initialize();
             }
         }
@@ -152,13 +155,15 @@ namespace Clockwise.Redis
 
         public void Dispose()
         {
-            keySpaceSubscription?.Dispose();
-            keySpaceObserver?.Dispose();
+           disposables.Dispose();
         }
 
         public IDisposable Subscribe(CircuitBreakerBrokerSubscriber subscriber)
         {
-            if (subscriber == null) throw new ArgumentNullException(nameof(subscriber));
+            if (subscriber == null)
+            {
+                throw new ArgumentNullException(nameof(subscriber));
+            }
             subscribers.TryAdd(subscriber);
             return Disposable.Create(() => subscribers.TryRemove(subscriber));
         }
