@@ -86,15 +86,7 @@ namespace Clockwise.Redis
                 throw new ArgumentNullException(nameof(subscriber));
             }
 
-            var keySpace = GetKey<T>();
-            var partition = partitions.GetOrAdd(keySpace, redisKey =>
-            {
-                var setup = lazySetup.Value;
-                var db = setup.db;
-                var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
-                return keyPartition;
-            });
-
+            var partition = GetPartition<T>();
             disposables.Add(partition.Subscribe(subscriber));
         }
 
