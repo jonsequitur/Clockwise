@@ -81,6 +81,12 @@ namespace Clockwise
                             e);
                     }
 
+                    if (broker == null)
+                    {
+                        throw new ConfigurationException(
+                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create ICircuitBreakerBroker");
+                    }
+
                     var hosp = halfOpenStatePolicy ?? new PassThroughPolicy<TCommand>();
 
                     circuitBreaker = new Lazy<Task<(TCircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>>(async () =>
@@ -193,7 +199,7 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseInMemeoryCircuitBreakerStorage(this Configuration configuration)
+        public static Configuration UseInMemeoryCircuitBreakerBroker(this Configuration configuration)
         {
             configuration.Container.TryRegisterSingle<ICircuitBreakerBroker>(_ => new InMemoryCircuitBreakerBroker());
 
