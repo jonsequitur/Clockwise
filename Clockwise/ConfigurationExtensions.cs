@@ -51,32 +51,44 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker, THalfOpenStatePolicy>(this Configuration configuration)
+        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker>(this Configuration configuration, ICircuitBreakerBroker circuitBreakerBroker = null, HalfOpenStatePolicy<TCommand> halfOpenStatePolicy = null)
             where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
-            where THalfOpenStatePolicy : HalfOpenStatePolicy<TCommand>
         {
             configuration.Container.AfterCreating<ICommandReceiver<TCommand>>(receiver =>
             {
-                TCircuitBreaker cb;
-                try
+                Lazy<Task<(TCircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>> circuitBreaker;
                 {
-                    cb = configuration.Container.Resolve<TCircuitBreaker>();
-                }
-                catch (Exception e)
-                {
-                    throw new ConfigurationException($"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}", e);
-                }
+                    TCircuitBreaker cb;
+                    try
+                    {
+                        cb = configuration.Container.Resolve<TCircuitBreaker>();
+                    }
+                    catch (Exception e)
+                    {
+                        throw new ConfigurationException(
+                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}", e);
+                    }
 
-                THalfOpenStatePolicy hosp;
+                    ICircuitBreakerBroker broker;
+                    try
+                    {
+                        broker = circuitBreakerBroker ?? configuration.Container.Resolve<ICircuitBreakerBroker>();
+                    }
+                    catch (Exception e)
+                    {
+                        throw new ConfigurationException(
+                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create ICircuitBreakerBroker",
+                            e);
+                    }
 
-                try
-                {
-                    hosp = configuration.Container.Resolve<THalfOpenStatePolicy>();
+                    var hosp = halfOpenStatePolicy ?? new PassThroughPolicy<TCommand>();
 
-                }
-                catch (Exception e)
-                {
-                    throw new ConfigurationException($"Failure during creation of HalfOpen state policy {typeof(THalfOpenStatePolicy).Name}", e);
+                    circuitBreaker = new Lazy<Task<(TCircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>>(async () =>
+                    {
+                        await broker.InitializeFor<TCircuitBreaker>();
+                        cb.BindToBroker(broker);
+                        return (cb,hosp);
+                    });
                 }
 
                 async Task<ICommandDeliveryResult> Receive(HandleCommand<TCommand> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TCommand>, TimeSpan?, Task<ICommandDeliveryResult>> subscribe)
@@ -93,7 +105,8 @@ namespace Clockwise
                     return subscribe(async delivery =>
                     {
                         {
-                            var stateDescriptor = await cb.GetLastStateAsync();
+                            var cb = await circuitBreaker.Value;
+                            var stateDescriptor = await cb.breaker.GetLastStateAsync();
                             if (stateDescriptor.State == CircuitBreakerState.Open)
                             {
                                 return delivery.Retry(stateDescriptor.TimeToLive);
@@ -102,7 +115,7 @@ namespace Clockwise
                             ICommandDeliveryResult deliveryResult;
                             if (stateDescriptor.State == CircuitBreakerState.HalfOpen)
                             {
-                                deliveryResult = await hosp.Handle(handle, delivery);
+                                deliveryResult = await cb.policy.Handle(handle, delivery);
                             }
                             else
                             {
@@ -112,10 +125,10 @@ namespace Clockwise
                             switch (deliveryResult)
                             {
                                 case PauseDeliveryResult<TCommand> pause:
-                                    await cb.SignalFailure(pause.Duration);
+                                    await cb.breaker.SignalFailure(pause.Duration);
                                     break;
                                 default:
-                                    await cb.SignalSuccess();
+                                    await cb.breaker.SignalSuccess();
                                     break;
                             }
 
@@ -131,11 +144,6 @@ namespace Clockwise
                 return instrumented;
             });
             return configuration;
-        }
-
-        public static Configuration UseCircuitbreaker<TChannel, TCircuitBreaker>(this Configuration configuration) where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
-        {
-            return configuration.UseCircuitbreaker<TChannel, TCircuitBreaker, PassThroughPolicy<TChannel>>();
         }
 
         public static Configuration UseDependencies(

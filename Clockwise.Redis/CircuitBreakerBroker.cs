@@ -10,7 +10,7 @@ namespace Clockwise.Redis
     {
         private readonly int dbId;
         private readonly CompositeDisposable disposables = new CompositeDisposable();
-        private readonly ConcurrentDictionary<string, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<string, CircuitBreakerStoragePartition>();
+        private readonly ConcurrentDictionary<string, CircuitBreakerBrokerPartition> partitions = new ConcurrentDictionary<string, CircuitBreakerBrokerPartition>();
         private readonly Lazy<(ConnectionMultiplexer connection, IDatabase db, ISubscriber redisSubscriber)> lazySetup;
         
 
@@ -37,7 +37,7 @@ namespace Clockwise.Redis
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
+                var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
                 return keyPartition;
             });
 
@@ -51,62 +51,43 @@ namespace Clockwise.Redis
 
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync<T>() where T : CircuitBreaker<T>
         {
-            var keySpace = GetKey<T>();
-            var partition = partitions.GetOrAdd(keySpace, redisKey =>
-            {
-                var setup = lazySetup.Value;
-                var db = setup.db;
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
-                return keyPartition;
-            });
-
+            var partition = GetPartition<T>();
             return partition.GetLastStateAsync();
         }
         public Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
         {
-            var keySpace = GetKey<T>();
-            var partition = partitions.GetOrAdd(keySpace, redisKey =>
-            {
-                var setup = lazySetup.Value;
-                var db = setup.db;
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
-                return keyPartition;
-            });
-
+            var partition = GetPartition<T>();
             return partition.SignalFailureAsync(expiry);
         }
 
-        public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
+        private CircuitBreakerBrokerPartition GetPartition<T>() where T : CircuitBreaker<T>
         {
             var keySpace = GetKey<T>();
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
                 var setup = lazySetup.Value;
                 var db = setup.db;
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
+                var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
                 return keyPartition;
             });
+            return partition;
+        }
 
+        public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
+        {
+            var partition = GetPartition<T>();
             return partition.SignalSuccessAsync();
         }
 
-        public IDisposable Subscribe<T>(CircuitBreakerStorageSubscriber subscriber) where T : CircuitBreaker<T>
+        public void Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
         {
             if (subscriber == null)
             {
                 throw new ArgumentNullException(nameof(subscriber));
             }
 
-            var keySpace = GetKey<T>();
-            var partition = partitions.GetOrAdd(keySpace, redisKey =>
-            {
-                var setup = lazySetup.Value;
-                var db = setup.db;
-                var keyPartition = new CircuitBreakerStoragePartition(redisKey, dbId, db);
-                return keyPartition;
-            });
-
-            return partition.Subscribe(subscriber);
+            var partition = GetPartition<T>();
+            disposables.Add(partition.Subscribe(subscriber));
         }
 
         public void Dispose()
