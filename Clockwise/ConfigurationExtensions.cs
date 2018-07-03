@@ -51,9 +51,10 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker>(this Configuration configuration, ICircuitBreakerBroker circuitBreakerBroker = null, HalfOpenStatePolicy<TCommand> halfOpenStatePolicy = null)
+        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker>(this Configuration configuration, Func<ICircuitBreakerBroker> circuitBreakerBroker = null, Func<HalfOpenStatePolicy<TCommand>> halfOpenStatePolicy = null)
             where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
         {
+
             configuration.Container.AfterCreating<ICommandReceiver<TCommand>>(receiver =>
             {
                 Lazy<Task<(TCircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>> circuitBreaker;
@@ -72,7 +73,7 @@ namespace Clockwise
                     ICircuitBreakerBroker broker;
                     try
                     {
-                        broker = circuitBreakerBroker ?? configuration.Container.Resolve<ICircuitBreakerBroker>();
+                        broker = circuitBreakerBroker == null ? configuration.Container.Resolve<ICircuitBreakerBroker>() : circuitBreakerBroker();
                     }
                     catch (Exception e)
                     {
@@ -81,10 +82,35 @@ namespace Clockwise
                             e);
                     }
 
-                    var hosp = halfOpenStatePolicy ?? new PassThroughPolicy<TCommand>();
+                    if (broker == null)
+                    {
+                        throw new ConfigurationException(
+                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create ICircuitBreakerBroker");
+                    }
+
+                    HalfOpenStatePolicy<TCommand> hosp;
+                    try
+                    {
+                         hosp = halfOpenStatePolicy == null
+                            ? new PassThroughPolicy<TCommand>()
+                            : halfOpenStatePolicy();
+                    }
+                    catch (Exception e)
+                    {
+                        throw new ConfigurationException(
+                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create halfOpenStatePolicy",
+                            e);
+                    }
+
+                    if (hosp == null)
+                    {
+                        throw new ConfigurationException(
+                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create halfOpenStatePolicy");
+                    }
 
                     circuitBreaker = new Lazy<Task<(TCircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>>(async () =>
                     {
+                       
                         await broker.InitializeFor<TCircuitBreaker>();
                         cb.BindToBroker(broker);
                         return (cb,hosp);
@@ -193,7 +219,7 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseInMemeoryCircuitBreakerStorage(this Configuration configuration)
+        public static Configuration UseInMemeoryCircuitBreakerBroker(this Configuration configuration)
         {
             configuration.Container.TryRegisterSingle<ICircuitBreakerBroker>(_ => new InMemoryCircuitBreakerBroker());
 
@@ -247,23 +273,29 @@ namespace Clockwise
                                                      commandBusType,
                                                      c.Resolve<VirtualClock>()))
                                  .RegisterSingle(receiverType, CreateAndSubscribeDiscoveredHandlers)
-                                 .RegisterSingle(schedulerType, CreateAndSubscribeDiscoveredHandlers);
-
+                                 .RegisterSingle(schedulerType, CreateScheduler);
+                    
+                    
                     return c => c.Resolve(type);
 
                     object CreateAndSubscribeDiscoveredHandlers(PocketContainer container) =>
                         busesByType.GetOrAdd(commandType, _ =>
                         {
                             var bus = container.Resolve(commandBusType);
-
-                            TrySubscribeDiscoveredHandler(
-                                configuration,
-                                commandType,
-                                container,
-                                (dynamic)bus);
-
                             return bus;
                         });
+
+                    object CreateScheduler(PocketContainer container)
+                    {
+                       var bus = configuration.Container.Resolve(receiverType);
+                        TrySubscribeDiscoveredHandler(
+                            configuration,
+                            commandType,
+                            container,
+                            (dynamic)bus);
+                        var sc = busesByType[commandType];
+                        return sc;
+                    }
                 }
 
                 return null;
