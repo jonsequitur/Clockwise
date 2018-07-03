@@ -296,7 +296,6 @@ namespace Clockwise
                         var sc = busesByType[commandType];
                         return sc;
                     }
-                       
                 }
 
                 return null;
