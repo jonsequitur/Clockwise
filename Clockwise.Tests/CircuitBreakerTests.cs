@@ -10,17 +10,15 @@ namespace Clockwise.Tests
     public class CircuitBreakerTests
     {
         [Fact]
-        public void When_circuitbreaker_is_not_configured_and_the_handler_requests_the_pause_then_usefull_exception_is_thrown()
+        public void
+            When_circuitbreaker_is_not_configured_and_the_handler_requests_the_pause_then_usefull_exception_is_thrown()
         {
 
             var cfg = new Configuration()
                 .UseInMemoryScheduling()
                 .UseCircuitbreaker<int, TestCircuitBreaker>();
-            
-            new Action(() =>
-            {
-                cfg.CommandReceiver<int>();
-            }).Should().Throw<ConfigurationException>();
+
+            new Action(() => { cfg.CommandReceiver<int>(); }).Should().Throw<ConfigurationException>();
 
         }
 
@@ -32,9 +30,10 @@ namespace Clockwise.Tests
                 var processed = new List<int>();
                 var cfg = new Configuration();
                 cfg = cfg
+                    .TraceCommands()
                     .UseDependency<ICircuitBreakerBroker>(type => new InMemoryCircuitBreakerBroker())
                     .UseInMemoryScheduling()
-                   .UseCircuitbreaker<int, TestCircuitBreaker>();
+                    .UseCircuitbreaker<int, TestCircuitBreaker>();
 
                 var handler = CommandHandler.Create<int>(delivery =>
                 {
@@ -55,6 +54,36 @@ namespace Clockwise.Tests
                 await scheduler.Schedule(2, 2.Seconds());
                 await scheduler.Schedule(11, 3.Seconds());
                 await scheduler.Schedule(3, 4.Seconds());
+
+                await clock.AdvanceBy(5.Seconds());
+
+                processed.Should().BeEquivalentTo(1, 2);
+
+                await clock.AdvanceBy(6.Seconds());
+
+                processed.Should().BeEquivalentTo(1, 2, 3);
+            }
+        }
+
+        [Fact]
+        public async Task test_with_commandHandler()
+        {
+            using (var clock = VirtualClock.Start())
+            {
+                var processed = new List<int>();
+                var cfg = new Configuration();
+                cfg = cfg
+                    .TraceCommands()
+                    .UseDependency<ICircuitBreakerBroker>(type => new InMemoryCircuitBreakerBroker())
+                    .UseInMemoryScheduling()
+                    .UseHandlerDiscovery()
+                    .UseCircuitbreaker<TestCommand, TestCircuitBreaker>();
+
+                var scheduler = cfg.CommandScheduler<TestCommand>();
+                await scheduler.Schedule( new TestCommand(1, processed), 1.Seconds());
+                await scheduler.Schedule(new TestCommand(2, processed), 2.Seconds());
+                await scheduler.Schedule(new TestCommand(11, processed), 3.Seconds());
+                await scheduler.Schedule(new TestCommand(3, processed), 4.Seconds());
 
                 await clock.AdvanceBy(5.Seconds());
 
@@ -113,6 +142,36 @@ namespace Clockwise.Tests
 
                 processedLong.Should().BeEmpty();
             }
+        }
+    }
+
+    public class TestCommandHandler : ICommandHandler<TestCommand>
+    {
+        public TestCommandHandler()
+        {
+            
+        }
+        public async  Task<ICommandDeliveryResult> Handle(ICommandDelivery<TestCommand> delivery)
+        {
+            await Task.Yield();
+            if (delivery.Command.Payload > 10)
+            {
+                return delivery.PauseAllDeliveriesFor(5.Seconds());
+            }
+            delivery.Command.Processed.Add(delivery.Command.Payload);
+            return delivery.Complete();
+        }
+    }
+
+    public class TestCommand
+    {
+        public int Payload { get; }
+        public List<int> Processed { get; }
+
+        public TestCommand(int payload, List<int> processed)
+        {
+            Payload = payload;
+            Processed = processed;
         }
     }
 }
