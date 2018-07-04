@@ -11,6 +11,7 @@ namespace Clockwise.Redis
 {
     internal class CircuitBreakerBrokerPartition : IDisposable
     {
+        private static readonly Logger logger = Logger<CircuitBreakerBrokerPartition>.Log;
         private static readonly JsonSerializerSettings JsonSerializationSettings;
         private readonly ConcurrentSet<CircuitBreakerBrokerSubscriber> subscribers;
         private CircuitBreakerStateDescriptor stateDescriptor;
@@ -94,6 +95,10 @@ namespace Clockwise.Redis
             var setCommand = newStateExpiry == null ? $"redis.call(\'set\',\'{key}\',\'{toState}\')" : $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
             var script = $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then {setCommand} return \'{toState}\' else return prev end";
             var execution = (await db.ScriptEvaluateAsync(script))?.ToString();
+            if (!string.IsNullOrWhiteSpace(execution) && execution == toState)
+            {
+                logger.Event("CircuitBreakerTransition",("circuitBreakerType",key),("circuitBreakerState", execution ));
+            }
             return execution;
         }
 
