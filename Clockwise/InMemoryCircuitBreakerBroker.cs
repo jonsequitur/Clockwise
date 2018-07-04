@@ -11,11 +11,14 @@ namespace Clockwise
         private readonly ConcurrentDictionary<Type, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<Type, CircuitBreakerStoragePartition>();
         private class CircuitBreakerStoragePartition
         {
+            private static readonly Logger logger = Logger<CircuitBreakerStoragePartition>.Log;
             private readonly ConcurrentSet<CircuitBreakerBrokerSubscriber> subscribers;
             private CircuitBreakerStateDescriptor stateDescriptor;
+            private readonly string key;
 
-            public CircuitBreakerStoragePartition()
+            public CircuitBreakerStoragePartition(Type type)
             {
+                key = type.Name;
                 subscribers = new ConcurrentSet<CircuitBreakerBrokerSubscriber>();
                 stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(), TimeSpan.FromMinutes(2));
             }
@@ -51,8 +54,18 @@ namespace Clockwise
                         NotifyState();
                     }
                 }, expiry);
-                stateDescriptor = open;
+                SetCurrentState(open);
                 NotifyState();
+            }
+
+            private void SetCurrentState(CircuitBreakerStateDescriptor newState)
+            {
+                if (stateDescriptor != newState)
+                {
+                    stateDescriptor = newState;
+                    logger.Event("CircuitBreakerTransition", ("circuitBreakerType", key),
+                        ("circuitBreakerState", newState));
+                }
             }
 
             private void NotifyState()
@@ -68,7 +81,8 @@ namespace Clockwise
                 await Task.Yield();
                 if (stateDescriptor?.State != CircuitBreakerState.Closed)
                 {
-                    stateDescriptor = new CircuitBreakerStateDescriptor(stateDescriptor?.State == CircuitBreakerState.Open ? CircuitBreakerState.HalfOpen : CircuitBreakerState.Closed, Clock.Current.Now());
+                    var newState = new CircuitBreakerStateDescriptor(stateDescriptor?.State == CircuitBreakerState.Open ? CircuitBreakerState.HalfOpen : CircuitBreakerState.Closed, Clock.Current.Now());
+                    SetCurrentState(newState);
                 }
                 NotifyState();
             }
@@ -76,25 +90,25 @@ namespace Clockwise
 
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync<T>() where T : CircuitBreaker<T>
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition());
+            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T)));
             return partition.GetLastStateAsync();
         }
 
         public Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition());
+            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T)));
             return partition.SignalFailureAsync(expiry);
         }
 
         public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition());
+            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T)));
             return partition.SignalSuccessAsync();
         }
 
         public void Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition());
+            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T)));
             partition.Subscribe(subscriber);
         }
 
