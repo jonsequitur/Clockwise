@@ -16,19 +16,18 @@ namespace Clockwise
             private CircuitBreakerStateDescriptor stateDescriptor;
             private readonly string key;
 
-            public CircuitBreakerStoragePartition(Type type)
+            public CircuitBreakerStoragePartition(string key)
             {
-                key = type.Name;
+                this.key = key;
                 subscribers = new ConcurrentSet<CircuitBreakerBrokerSubscriber>();
                 stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(), TimeSpan.FromMinutes(2));
             }
 
-            public IDisposable Subscribe(CircuitBreakerBrokerSubscriber subscriber)
+            public void Subscribe(CircuitBreakerBrokerSubscriber subscriber)
             {
                 if (subscriber == null) throw new ArgumentNullException(nameof(subscriber));
                 subscriber(stateDescriptor);
                 subscribers.TryAdd(subscriber);
-                return Disposable.Create(() => { subscribers.TryRemove(subscriber); });
             }
 
             public Task<CircuitBreakerStateDescriptor> GetLastStateAsync()
@@ -50,7 +49,8 @@ namespace Clockwise
                 {
                     if (ReferenceEquals(stateDescriptor, open))
                     {
-                        stateDescriptor = new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now());
+                        var halfOpen = new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now());
+                        SetCurrentState(halfOpen);
                         NotifyState();
                     }
                 }, expiry);
@@ -90,25 +90,25 @@ namespace Clockwise
 
         public Task<CircuitBreakerStateDescriptor> GetLastStateAsync<T>() where T : CircuitBreaker<T>
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T)));
+            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T).Name));
             return partition.GetLastStateAsync();
         }
 
         public Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T)));
+            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T).Name));
             return partition.SignalFailureAsync(expiry);
         }
 
         public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T)));
+            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T).Name));
             return partition.SignalSuccessAsync();
         }
 
         public void Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T)));
+            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T).Name));
             partition.Subscribe(subscriber);
         }
 
