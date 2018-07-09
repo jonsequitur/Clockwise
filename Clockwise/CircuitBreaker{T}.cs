@@ -21,7 +21,7 @@ namespace Clockwise
 
         public async Task SignalFailure(TimeSpan expiry) => await broker.SignalFailureAsync<T>(expiry);
 
-        internal void BindToBroker(ICircuitBreakerBroker circuitBreakerBroker)
+        public void BindToBroker(ICircuitBreakerBroker circuitBreakerBroker)
         {
             broker = circuitBreakerBroker ?? throw new ArgumentNullException(nameof(circuitBreakerBroker));
             broker.Subscribe<T>(StateChanged);
