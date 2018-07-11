@@ -8,7 +8,7 @@ namespace Clockwise
     public sealed class InMemoryCircuitBreakerBroker : ICircuitBreakerBroker
     {
 
-        private readonly ConcurrentDictionary<Type, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<Type, CircuitBreakerStoragePartition>();
+        private readonly ConcurrentDictionary<string, CircuitBreakerStoragePartition> partitions = new ConcurrentDictionary<string, CircuitBreakerStoragePartition>();
         private class CircuitBreakerStoragePartition
         {
             private static readonly Logger logger = Logger<CircuitBreakerStoragePartition>.Log;
@@ -88,31 +88,31 @@ namespace Clockwise
             }
         }
 
-        public Task<CircuitBreakerStateDescriptor> GetLastStateAsync<T>() where T : CircuitBreaker<T>
+        public Task<CircuitBreakerStateDescriptor> GetLastStateAsync(string circuitBreakerId)
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T).Name));
+            var partition = partitions.GetOrAdd(circuitBreakerId, key => new CircuitBreakerStoragePartition(circuitBreakerId));
             return partition.GetLastStateAsync();
         }
 
-        public Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
+        public Task SignalFailureAsync(string circuitBreakerId, TimeSpan expiry)
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T).Name));
+            var partition = partitions.GetOrAdd(circuitBreakerId, key => new CircuitBreakerStoragePartition(circuitBreakerId));
             return partition.SignalFailureAsync(expiry);
         }
 
-        public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
+        public Task SignalSuccessAsync(string circuitBreakerId)
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T).Name));
+            var partition = partitions.GetOrAdd(circuitBreakerId, key => new CircuitBreakerStoragePartition(circuitBreakerId));
             return partition.SignalSuccessAsync();
         }
 
-        public void Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
+        public void Subscribe(string circuitBreakerId, CircuitBreakerBrokerSubscriber subscriber)
         {
-            var partition = partitions.GetOrAdd(typeof(T), key => new CircuitBreakerStoragePartition(typeof(T).Name));
+            var partition = partitions.GetOrAdd(circuitBreakerId, key => new CircuitBreakerStoragePartition(circuitBreakerId));
             partition.Subscribe(subscriber);
         }
 
-        public Task InitializeFor<T>() where T : CircuitBreaker<T>
+        public Task InitializeFor(string circuitBreakerId)
         {
             return Task.CompletedTask;
         }

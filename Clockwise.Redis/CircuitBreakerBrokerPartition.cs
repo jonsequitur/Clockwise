@@ -68,7 +68,7 @@ namespace Clockwise.Redis
                 var newState = new CircuitBreakerStateDescriptor(CircuitBreakerState.Closed, Clock.Current.Now(),
                     TimeSpan.FromMinutes(1));
                 lastSerializedState = await Transition(lastSerializedState,
-                    JsonConvert.SerializeObject(newState, JsonSerializationSettings));
+                    JsonConvert.SerializeObject(newState, JsonSerializationSettings),true);
             }
 
             return TryDeserialise(lastSerializedState);
@@ -83,19 +83,20 @@ namespace Clockwise.Redis
 
         private async Task TransitionStateTo(CircuitBreakerStateDescriptor targetState, TimeSpan? expiry = null)
         {
+            var shoudLogEvent = IsNullOrWhiteSpace(lastSerializedState) || targetState.State == CircuitBreakerState.Open || stateDescriptor?.State != targetState.State;
             var serialized = JsonConvert.SerializeObject(targetState, JsonSerializationSettings);
             var stateExpiry = targetState.State == CircuitBreakerState.Open && expiry == null
                 ? TimeSpan.FromMinutes(1)
                 : expiry;
-            await Transition(lastSerializedState, serialized, stateExpiry);
+            await Transition(lastSerializedState, serialized, shoudLogEvent, stateExpiry);
         }
 
-        private async Task<string> Transition(string fromState, string toState, TimeSpan? newStateExpiry = null)
+        private async Task<string> Transition(string fromState, string toState, bool shouldLogEvent, TimeSpan? newStateExpiry = null)
         {
             var setCommand = newStateExpiry == null ? $"redis.call(\'set\',\'{key}\',\'{toState}\')" : $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
             var script = $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then {setCommand} return \'{toState}\' else return prev end";
             var execution = (await db.ScriptEvaluateAsync(script))?.ToString();
-            if (!string.IsNullOrWhiteSpace(execution) && execution == toState)
+            if (shouldLogEvent &&(!IsNullOrWhiteSpace(execution) && execution == toState))
             {
                 logger.Event("CircuitBreakerTransition",("circuitBreakerType",key),("circuitBreakerState", execution ));
             }
@@ -142,7 +143,7 @@ namespace Clockwise.Redis
                             null,
                             JsonConvert.SerializeObject(
                                 new CircuitBreakerStateDescriptor(CircuitBreakerState.HalfOpen, Clock.Current.Now()),
-                                JsonSerializationSettings)));
+                                JsonSerializationSettings),true));
 
                 }
                     break;
