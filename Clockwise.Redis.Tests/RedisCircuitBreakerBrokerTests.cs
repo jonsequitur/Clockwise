@@ -6,9 +6,9 @@ using StackExchange.Redis;
 namespace Clockwise.Redis.Tests
 {
     
-    public class RedisCircuitBreakerBrokerTests : CircuitBreakerBrokerTests<TestCircuitBreaker>
+    public class RedisCircuitBreakerBrokerTests : CircuitBreakerBrokerTests
     {
-        protected override async Task<ICircuitBreakerBroker> CreateBroker()
+        protected override async Task<ICircuitBreakerBroker> CreateBroker(string circuitBreakerId)
         {
             var db = 1;
             var cb01 = new CircuitBreakerBroker("127.0.0.1", db);
@@ -20,7 +20,7 @@ namespace Clockwise.Redis.Tests
                 cb01.Dispose();
                 connection.Dispose();
             }));
-            await cb01.InitializeFor<TestCircuitBreaker>();
+            await cb01.InitializeFor(circuitBreakerId);
             return cb01;
         }
 

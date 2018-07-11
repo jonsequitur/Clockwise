@@ -28,13 +28,13 @@ namespace Clockwise.Redis
                 });
         }
 
-        public async Task InitializeFor<T>() where T : CircuitBreaker<T>
+        public async Task InitializeFor(string circuitBreakerId)
         {
             var setup = lazySetup.Value;
             var db = setup.db;
             var redisSubscriber = setup.redisSubscriber;
 
-            var keySpace = GetKey<T>();
+            var keySpace = circuitBreakerId;
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
                 var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
@@ -44,25 +44,20 @@ namespace Clockwise.Redis
             await partition.Initialize(redisSubscriber);
         }
 
-        private static string GetKey<T>()
+        public Task<CircuitBreakerStateDescriptor> GetLastStateAsync(string circuitBreakerId)
         {
-            return $"{typeof(T).Name}.circuitBreaker";
-        }
-
-        public Task<CircuitBreakerStateDescriptor> GetLastStateAsync<T>() where T : CircuitBreaker<T>
-        {
-            var partition = GetPartition<T>();
+            var partition = GetPartition(circuitBreakerId);
             return partition.GetLastStateAsync();
         }
-        public Task SignalFailureAsync<T>(TimeSpan expiry) where T : CircuitBreaker<T>
+        public Task SignalFailureAsync(string circuitBreakerId, TimeSpan expiry)
         {
-            var partition = GetPartition<T>();
+            var partition = GetPartition(circuitBreakerId);
             return partition.SignalFailureAsync(expiry);
         }
 
-        private CircuitBreakerBrokerPartition GetPartition<T>() where T : CircuitBreaker<T>
+        private CircuitBreakerBrokerPartition GetPartition(string circuitBreakerId)
         {
-            var keySpace = GetKey<T>();
+            var keySpace = circuitBreakerId;
             var partition = partitions.GetOrAdd(keySpace, redisKey =>
             {
                 var setup = lazySetup.Value;
@@ -73,20 +68,20 @@ namespace Clockwise.Redis
             return partition;
         }
 
-        public Task SignalSuccessAsync<T>() where T : CircuitBreaker<T>
+        public Task SignalSuccessAsync(string circuitBreakerId)
         {
-            var partition = GetPartition<T>();
+            var partition = GetPartition(circuitBreakerId);
             return partition.SignalSuccessAsync();
         }
 
-        public void Subscribe<T>(CircuitBreakerBrokerSubscriber subscriber) where T : CircuitBreaker<T>
+        public void Subscribe(string circuitBreakerId, CircuitBreakerBrokerSubscriber subscriber)
         {
             if (subscriber == null)
             {
                 throw new ArgumentNullException(nameof(subscriber));
             }
 
-            var partition = GetPartition<T>();
+            var partition = GetPartition(circuitBreakerId);
             disposables.Add(partition.Subscribe(subscriber));
         }
 

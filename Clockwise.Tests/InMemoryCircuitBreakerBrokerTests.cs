@@ -2,12 +2,13 @@ using System.Threading.Tasks;
 
 namespace Clockwise.Tests
 {
-    public class InMemoryCircuitBreakerBrokerTests : CircuitBreakerBrokerTests<TestCircuitBreaker>
+    public class InMemoryCircuitBreakerBrokerTests : CircuitBreakerBrokerTests
     {
-        protected override Task<ICircuitBreakerBroker> CreateBroker()
+        protected override async Task<ICircuitBreakerBroker> CreateBroker(string circuitBreakerId)
         {
             ICircuitBreakerBroker cb = new InMemoryCircuitBreakerBroker();
-            return Task.FromResult(cb);
+            await cb.InitializeFor(circuitBreakerId);
+            return cb;
         }
 
         protected override IClock GetClock()

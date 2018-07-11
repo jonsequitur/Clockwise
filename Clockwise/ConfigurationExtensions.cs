@@ -51,23 +51,23 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreaker<TCommand, TCircuitBreaker>(this Configuration configuration, Func<ICircuitBreakerBroker> circuitBreakerBroker = null, Func<HalfOpenStatePolicy<TCommand>> halfOpenStatePolicy = null)
-            where TCircuitBreaker : CircuitBreaker<TCircuitBreaker>
+        public static Configuration UseCircuitbreaker<TCommand>(this Configuration configuration, string circuitBreakerId, Func<ICircuitBreakerBroker> circuitBreakerBroker = null, Func<HalfOpenStatePolicy<TCommand>> halfOpenStatePolicy = null)
+            
         {
 
             configuration.Container.AfterCreating<ICommandReceiver<TCommand>>(receiver =>
             {
-                Lazy<Task<(TCircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>> circuitBreaker;
+                Lazy<Task<(CircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>> circuitBreaker;
                 {
-                    TCircuitBreaker cb;
+                    CircuitBreaker cb;
                     try
                     {
-                        cb = configuration.Container.Resolve<TCircuitBreaker>();
+                        cb = new CircuitBreaker(circuitBreakerId);
                     }
                     catch (Exception e)
                     {
                         throw new ConfigurationException(
-                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}", e);
+                            $"Failure during creation of circuit breaker {circuitBreakerId}", e);
                     }
 
                     ICircuitBreakerBroker broker;
@@ -78,14 +78,14 @@ namespace Clockwise
                     catch (Exception e)
                     {
                         throw new ConfigurationException(
-                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create ICircuitBreakerBroker",
+                            $"Failure during creation of circuit breaker {circuitBreakerId}, cannot create ICircuitBreakerBroker",
                             e);
                     }
 
                     if (broker == null)
                     {
                         throw new ConfigurationException(
-                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create ICircuitBreakerBroker");
+                            $"Failure during creation of circuit breaker {circuitBreakerId}, cannot create ICircuitBreakerBroker");
                     }
 
                     HalfOpenStatePolicy<TCommand> hosp;
@@ -98,20 +98,20 @@ namespace Clockwise
                     catch (Exception e)
                     {
                         throw new ConfigurationException(
-                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create halfOpenStatePolicy",
+                            $"Failure during creation of circuit breaker {circuitBreakerId}, cannot create halfOpenStatePolicy",
                             e);
                     }
 
                     if (hosp == null)
                     {
                         throw new ConfigurationException(
-                            $"Failure during creation of circuit breaker {typeof(TCircuitBreaker).Name}, cannot create halfOpenStatePolicy");
+                            $"Failure during creation of circuit breaker {circuitBreakerId}, cannot create halfOpenStatePolicy");
                     }
 
-                    circuitBreaker = new Lazy<Task<(TCircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>>(async () =>
+                    circuitBreaker = new Lazy<Task<(CircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>>(async () =>
                     {
                        
-                        await broker.InitializeFor<TCircuitBreaker>();
+                        await broker.InitializeFor(cb.Id);
                         cb.BindToBroker(broker);
                         return (cb,hosp);
                     });

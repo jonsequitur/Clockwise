@@ -16,7 +16,7 @@ namespace Clockwise.Tests
 
             var cfg = new Configuration()
                 .UseInMemoryScheduling()
-                .UseCircuitbreaker<int, TestCircuitBreaker>();
+                .UseCircuitbreaker<int>("TestCircuitBreaker");
 
             new Action(() => { cfg.CommandReceiver<int>(); }).Should().Throw<ConfigurationException>();
 
@@ -33,7 +33,7 @@ namespace Clockwise.Tests
                     .TraceCommands()
                     .UseDependency<ICircuitBreakerBroker>(type => new InMemoryCircuitBreakerBroker())
                     .UseInMemoryScheduling()
-                    .UseCircuitbreaker<int, TestCircuitBreaker>();
+                    .UseCircuitbreaker<int>("TestCircuitBreaker");
 
                 var handler = CommandHandler.Create<int>(delivery =>
                 {
@@ -77,7 +77,7 @@ namespace Clockwise.Tests
                     .UseDependency<ICircuitBreakerBroker>(type => new InMemoryCircuitBreakerBroker())
                     .UseInMemoryScheduling()
                     .UseHandlerDiscovery()
-                    .UseCircuitbreaker<TestCommand, TestCircuitBreaker>();
+                    .UseCircuitbreaker<TestCommand>("TestCircuitBreaker");
 
                 var scheduler = cfg.CommandScheduler<TestCommand>();
                 await scheduler.Schedule( new TestCommand(1, processed), 1.Seconds());
@@ -106,8 +106,8 @@ namespace Clockwise.Tests
                 cfg = cfg
                     .UseInMemeoryCircuitBreakerBroker()
                     .UseInMemoryScheduling()
-                    .UseCircuitbreaker<int, TestCircuitBreaker>()
-                    .UseCircuitbreaker<long, TestCircuitBreaker>();
+                    .UseCircuitbreaker<int>("TestCircuitBreaker")
+                    .UseCircuitbreaker<long>("TestCircuitBreaker");
 
 
 
