@@ -51,10 +51,8 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseCircuitbreaker<TCommand>(this Configuration configuration, string circuitBreakerId, Func<ICircuitBreakerBroker> circuitBreakerBroker = null, Func<HalfOpenStatePolicy<TCommand>> halfOpenStatePolicy = null)
-            
+        public static Configuration UseCircuitBreaker<TCommand>(this Configuration configuration, string circuitBreakerId, Func<ICircuitBreakerBroker> circuitBreakerBroker = null, Func<HalfOpenStatePolicy<TCommand>> halfOpenStatePolicy = null)
         {
-
             configuration.Container.AfterCreating<ICommandReceiver<TCommand>>(receiver =>
             {
                 Lazy<Task<(CircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>> circuitBreaker;
@@ -117,13 +115,12 @@ namespace Clockwise
                     });
                 }
 
-                async Task<ICommandDeliveryResult> Receive(HandleCommand<TCommand> handlerDelegate, TimeSpan? timeout, Func<HandleCommand<TCommand>, TimeSpan?, Task<ICommandDeliveryResult>> subscribe)
+                async Task<ICommandDeliveryResult> Receive(
+                    HandleCommand<TCommand> handlerDelegate,
+                    TimeSpan? timeout,
+                    Func<HandleCommand<TCommand>, TimeSpan?, Task<ICommandDeliveryResult>> subscribe)
                 {
-                    return await subscribe(async delivery =>
-                    {
-                        var result = await handlerDelegate(delivery);
-                        return result;
-                    }, timeout);
+                    return await subscribe(async delivery => await handlerDelegate(delivery), timeout);
                 }
 
                 IDisposable Subscribe(HandleCommand<TCommand> handle, Func<HandleCommand<TCommand>, IDisposable> subscribe)
@@ -163,11 +160,9 @@ namespace Clockwise
                     });
                 }
 
-                var instrumented = receiver.UseMiddleware(
+                return receiver.UseMiddleware(
                     receive: Receive,
                     subscribe: Subscribe);
-
-                return instrumented;
             });
             return configuration;
         }

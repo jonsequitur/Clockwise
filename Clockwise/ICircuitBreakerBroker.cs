@@ -12,5 +12,6 @@ namespace Clockwise
         Task InitializeFor(string circuitBreakerId);
     }
 
+    // FIX: (CircuitBreakerBrokerSubscriber)  rename
     public delegate void CircuitBreakerBrokerSubscriber(CircuitBreakerStateDescriptor circuitBreakerStateDescriptor);
 }

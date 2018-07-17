@@ -42,7 +42,7 @@ namespace Clockwise.Tests
         }
       
         [Fact]
-        public async Task Give_an_open_circuitbreaker_then_signaling_succes_then_state_is_half_open()
+        public async Task Give_an_open_circuit_breaker_then_signaling_succes_then_state_is_half_open()
         {
             var cb01 = await CreateBroker(circuitBreakerId);
             var clock = GetClock();
@@ -57,7 +57,7 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task Give_an_half_open_circuitbreaker_then_signaling_succes_then_state_is_closed()
+        public async Task Give_an_half_open_circuit_breaker_then_signaling_succes_then_state_is_closed()
         {
             var cb01 = await CreateBroker(circuitBreakerId);
             var clock = GetClock();
@@ -73,7 +73,7 @@ namespace Clockwise.Tests
             stateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
         }
         [Fact]
-        public async Task Give_an_half_open_circuitbreaker_then_signaling_failure_then_state_is_closed()
+        public async Task Give_an_half_open_circuit_breaker_then_signaling_failure_then_state_is_closed()
         {
             var cb01 = await CreateBroker(circuitBreakerId);
             var clock = GetClock();

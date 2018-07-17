@@ -13,16 +13,21 @@ namespace Clockwise.Redis
         private readonly ConcurrentDictionary<string, CircuitBreakerBrokerPartition> partitions = new ConcurrentDictionary<string, CircuitBreakerBrokerPartition>();
         private readonly Lazy<(ConnectionMultiplexer connection, IDatabase db, ISubscriber redisSubscriber)> lazySetup;
         
-
-        public CircuitBreakerBroker(string connectionString, int dbId)
+        public CircuitBreakerBroker(string connectionString, int dbId = 0)
         {
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(connectionString));
+            }
+
             this.dbId = dbId;
+
             lazySetup
                 = new Lazy<(ConnectionMultiplexer, IDatabase, ISubscriber)>(() =>
                 {
                     var connection = ConnectionMultiplexer.Connect(connectionString);
                     var subscriber = connection.GetSubscriber();
-                    disposables.Add(Disposable.Create(() => subscriber.UnsubscribeAll()));
+                    disposables.Add(() => subscriber.UnsubscribeAll());
                     disposables.Add(connection);
                     return (connection, connection.GetDatabase(dbId), subscriber);
                 });

@@ -19,13 +19,15 @@ namespace Clockwise.AzureServiceBus
                                  throw new ArgumentNullException(nameof(messageSender));
         }
 
-        public async Task Schedule(ICommandDelivery<T> delivery) => 
+        public async Task Schedule(ICommandDelivery<T> delivery) =>
             await messageSender.SendAsync(delivery.ToMessage());
-   public void Dispose()
+
+        public void Dispose()
         {
             using (Log.OnEnterAndExit())
             {
                 Task.Run(messageSender.CloseAsync).Wait();
             }
-        }   } 
+        }
+    }
 }
