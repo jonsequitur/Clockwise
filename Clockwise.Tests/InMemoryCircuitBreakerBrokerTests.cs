@@ -7,13 +7,9 @@ namespace Clockwise.Tests
         protected override async Task<ICircuitBreakerBroker> CreateBroker(string circuitBreakerId)
         {
             ICircuitBreakerBroker cb = new InMemoryCircuitBreakerBroker();
-            await cb.InitializeFor(circuitBreakerId);
+            await cb.InitializeAsync(circuitBreakerId);
             return cb;
         }
 
-        protected override IClock GetClock()
-        {
-            return Clock.Current;
-        }
     }
 }

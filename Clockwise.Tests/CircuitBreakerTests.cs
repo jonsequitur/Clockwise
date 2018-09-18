@@ -104,7 +104,7 @@ namespace Clockwise.Tests
                 var processedLong = new List<long>();
                 var cfg = new Configuration();
                 cfg = cfg
-                    .UseInMemeoryCircuitBreakerBroker()
+                    .UseInMemoryCircuitBreakerBroker()
                     .UseInMemoryScheduling()
                     .UseCircuitBreaker<int>("TestCircuitBreaker")
                     .UseCircuitBreaker<long>("TestCircuitBreaker");

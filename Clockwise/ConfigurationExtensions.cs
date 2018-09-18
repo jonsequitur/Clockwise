@@ -109,8 +109,8 @@ namespace Clockwise
                     circuitBreaker = new Lazy<Task<(CircuitBreaker breaker, HalfOpenStatePolicy<TCommand> policy)>>(async () =>
                     {
                        
-                        await broker.InitializeFor(cb.Id);
-                        cb.BindToBroker(broker);
+                        await broker.InitializeAsync(cb.Id);
+                        await cb.BindToBroker(broker);
                         return (cb,hosp);
                     });
                 }
@@ -214,12 +214,13 @@ namespace Clockwise
             return configuration;
         }
 
-        public static Configuration UseInMemeoryCircuitBreakerBroker(this Configuration configuration)
+        public static Configuration UseInMemoryCircuitBreakerBroker(this Configuration configuration)
         {
             configuration.Container.TryRegisterSingle<ICircuitBreakerBroker>(_ => new InMemoryCircuitBreakerBroker());
 
             return configuration;
         }
+
         public static Configuration UseInMemoryScheduling(
             this Configuration configuration)
         {

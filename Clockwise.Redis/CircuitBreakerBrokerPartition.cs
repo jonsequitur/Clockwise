@@ -93,10 +93,19 @@ namespace Clockwise.Redis
 
         private async Task<string> Transition(string fromState, string toState, bool shouldLogEvent, TimeSpan? newStateExpiry = null)
         {
-            var setCommand = newStateExpiry == null ? $"redis.call(\'set\',\'{key}\',\'{toState}\')" : $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
+            string setCommand;
+            if (newStateExpiry == null)
+            {
+                setCommand = $"redis.call(\'set\',\'{key}\',\'{toState}\')";
+            }
+            else
+            {
+                setCommand = $"redis.call(\'setex\',\'{key}\', {newStateExpiry.Value.TotalSeconds},\'{toState}\' )";
+            }
+
             var script = $"local prev = redis.call(\'get\', \'{key}\') if not(prev) or prev == \'{fromState}\' then {setCommand} return \'{toState}\' else return prev end";
             var execution = (await db.ScriptEvaluateAsync(script))?.ToString();
-            if (shouldLogEvent &&(!IsNullOrWhiteSpace(execution) && execution == toState))
+            if (shouldLogEvent && !IsNullOrWhiteSpace(execution) && execution == toState)
             {
                 logger.Event("CircuitBreakerTransition",("circuitBreakerType",key),("circuitBreakerState", execution ));
             }

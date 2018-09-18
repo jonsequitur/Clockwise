@@ -13,7 +13,6 @@ namespace Clockwise.Tests
         private readonly CompositeDisposable disposables = new CompositeDisposable();
         protected abstract Task<ICircuitBreakerBroker> CreateBroker(string circuitBreakerId);
 
-        protected abstract IClock GetClock();
         protected void AddToDisposable(IDisposable disposable)
         {
             disposables.Add(disposable);
@@ -29,23 +28,24 @@ namespace Clockwise.Tests
         }
 
         [Fact]
-        public async Task When_signaling_failure_then_state_is_open()
+        public async Task When_a_closed_circuit_breaker_is_given_a_failure_signal_then_it_moves_to_open()
         {
             var cb01 = await CreateBroker(circuitBreakerId);
-            var clock = GetClock();
+            var clock = Clock.Current;
             var stateDescriptor = await cb01.GetLastStateAsync(circuitBreakerId);
             stateDescriptor.Should().NotBeNull();
             await cb01.SignalFailureAsync(circuitBreakerId, 2.Seconds());
             await clock.Wait(1.Seconds());
             stateDescriptor = await cb01.GetLastStateAsync(circuitBreakerId);
+
             stateDescriptor.State.Should().Be(CircuitBreakerState.Open);
         }
       
         [Fact]
-        public async Task Give_an_open_circuit_breaker_then_signaling_succes_then_state_is_half_open()
+        public async Task When_an_open_circuit_breaker_is_given_a_success_signal_then_it_moves_to_half_open()
         {
             var cb01 = await CreateBroker(circuitBreakerId);
-            var clock = GetClock();
+            var clock = Clock.Current;
             await cb01.SignalFailureAsync(circuitBreakerId, 2.Seconds());
             var stateDescriptor = await cb01.GetLastStateAsync(circuitBreakerId);
             stateDescriptor.State.Should().Be(CircuitBreakerState.Open);
@@ -53,14 +53,15 @@ namespace Clockwise.Tests
             await cb01.SignalSuccessAsync(circuitBreakerId);
             await clock.Wait(1.Seconds());
             stateDescriptor = await cb01.GetLastStateAsync(circuitBreakerId);
+
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 
         [Fact]
-        public async Task Give_an_half_open_circuit_breaker_then_signaling_succes_then_state_is_closed()
+        public async Task When_a_half_open_circuit_breaker_is_given_a_success_signal_then_it_moves_to_closed()
         {
             var cb01 = await CreateBroker(circuitBreakerId);
-            var clock = GetClock();
+            var clock = Clock.Current;
             await cb01.SignalFailureAsync(circuitBreakerId, TimeSpan.FromSeconds(2));
             await clock.Wait(1.Seconds());
             await cb01.SignalSuccessAsync(circuitBreakerId);
@@ -70,13 +71,14 @@ namespace Clockwise.Tests
             await cb01.SignalSuccessAsync(circuitBreakerId);
             await clock.Wait(1.Seconds());
             stateDescriptor = await cb01.GetLastStateAsync(circuitBreakerId);
+
             stateDescriptor.State.Should().Be(CircuitBreakerState.Closed);
         }
         [Fact]
-        public async Task Give_an_half_open_circuit_breaker_then_signaling_failure_then_state_is_closed()
+        public async Task When_a_half_open_circuit_breaker_is_given_a_failure_signal_then_it_moves_to_open()
         {
             var cb01 = await CreateBroker(circuitBreakerId);
-            var clock = GetClock();
+            var clock = Clock.Current;
             await cb01.SignalFailureAsync(circuitBreakerId, 2.Seconds());
             await clock.Wait(1.Seconds());
             await cb01.SignalSuccessAsync(circuitBreakerId);
@@ -86,17 +88,19 @@ namespace Clockwise.Tests
             await cb01.SignalFailureAsync(circuitBreakerId, 2.Seconds());
             await clock.Wait(1.Seconds());
             stateDescriptor = await cb01.GetLastStateAsync(circuitBreakerId);
+
             stateDescriptor.State.Should().Be(CircuitBreakerState.Open);
         }
 
         [Fact]
-        public async Task When_open_state_expires_it_is_set_to_half_open()
+        public async Task When_open_state_expires_it_moves_to_half_open()
         {
             var cb01 = await CreateBroker(circuitBreakerId);
-            var clock = GetClock();
+            var clock = Clock.Current;
             await cb01.SignalFailureAsync(circuitBreakerId, 1.Seconds());
             await clock.Wait(2.Seconds());
             var stateDescriptor = await cb01.GetLastStateAsync(circuitBreakerId);
+
             stateDescriptor.State.Should().Be(CircuitBreakerState.HalfOpen);
         }
 

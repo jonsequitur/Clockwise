@@ -25,7 +25,11 @@ namespace Clockwise
 
             public void Subscribe(CircuitBreakerBrokerSubscriber subscriber)
             {
-                if (subscriber == null) throw new ArgumentNullException(nameof(subscriber));
+                if (subscriber == null)
+                {
+                    throw new ArgumentNullException(nameof(subscriber));
+                }
+
                 subscriber(stateDescriptor);
                 subscribers.TryAdd(subscriber);
             }
@@ -63,7 +67,9 @@ namespace Clockwise
                 if (stateDescriptor != newState)
                 {
                     stateDescriptor = newState;
-                    logger.Event("CircuitBreakerTransition", ("circuitBreakerType", key),
+                    logger.Event(
+                        "CircuitBreakerTransition",
+                        ("circuitBreakerType", key),
                         ("circuitBreakerState", newState));
                 }
             }
@@ -106,13 +112,14 @@ namespace Clockwise
             return partition.SignalSuccessAsync();
         }
 
-        public void Subscribe(string circuitBreakerId, CircuitBreakerBrokerSubscriber subscriber)
+        public async Task SubscribeAsync(string circuitBreakerId, CircuitBreakerBrokerSubscriber subscriber)
         {
             var partition = partitions.GetOrAdd(circuitBreakerId, key => new CircuitBreakerStoragePartition(circuitBreakerId));
+
             partition.Subscribe(subscriber);
         }
 
-        public Task InitializeFor(string circuitBreakerId)
+        public Task InitializeAsync(string circuitBreakerId)
         {
             return Task.CompletedTask;
         }
