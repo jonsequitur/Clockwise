@@ -9,7 +9,7 @@ namespace Clockwise.AzureServiceBus
         ICommandScheduler<T>,
         IDisposable
     {
-        private static readonly Logger Log = new Logger("AzureServiceBusCommandScheduler");
+        private static readonly Logger Log = new Logger<AzureServiceBusCommandScheduler<T>>();
         private readonly MessageSender messageSender;
 
         public AzureServiceBusCommandScheduler(
