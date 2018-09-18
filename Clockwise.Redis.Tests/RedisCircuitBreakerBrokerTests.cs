@@ -5,14 +5,15 @@ using StackExchange.Redis;
 
 namespace Clockwise.Redis.Tests
 {
-    
     public class RedisCircuitBreakerBrokerTests : CircuitBreakerBrokerTests
     {
         protected override async Task<ICircuitBreakerBroker> CreateBroker(string circuitBreakerId)
         {
-            var db = 1;
+            var db = 1; // QUESTION: (CreateBroker) why?
             var cb01 = new CircuitBreakerBroker("127.0.0.1", db);
+
             AddToDisposable(cb01);
+
             AddToDisposable(Disposable.Create(() =>
             {
                 var connection = ConnectionMultiplexer.Connect("127.0.0.1");
@@ -20,13 +21,10 @@ namespace Clockwise.Redis.Tests
                 cb01.Dispose();
                 connection.Dispose();
             }));
-            await cb01.InitializeFor(circuitBreakerId);
-            return cb01;
-        }
 
-        protected override IClock GetClock()
-        {
-            return Clock.Current;
+            await cb01.InitializeAsync(circuitBreakerId);
+
+            return cb01;
         }
     }
 }

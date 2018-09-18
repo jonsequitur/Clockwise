@@ -9,7 +9,7 @@ namespace Clockwise.AzureServiceBus
         ICommandScheduler<T>,
         IDisposable
     {
-        private static readonly Logger Log = new Logger("AzureServiceBusCommandScheduler");
+        private static readonly Logger Log = new Logger<AzureServiceBusCommandScheduler<T>>();
         private readonly MessageSender messageSender;
 
         public AzureServiceBusCommandScheduler(
@@ -19,13 +19,15 @@ namespace Clockwise.AzureServiceBus
                                  throw new ArgumentNullException(nameof(messageSender));
         }
 
-        public async Task Schedule(ICommandDelivery<T> delivery) => 
+        public async Task Schedule(ICommandDelivery<T> delivery) =>
             await messageSender.SendAsync(delivery.ToMessage());
-   public void Dispose()
+
+        public void Dispose()
         {
             using (Log.OnEnterAndExit())
             {
                 Task.Run(messageSender.CloseAsync).Wait();
             }
-        }   } 
+        }
+    }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading.Tasks;
 using Pocket;
 using StackExchange.Redis;
@@ -10,57 +11,61 @@ namespace Clockwise.Redis
     {
         private readonly int dbId;
         private readonly CompositeDisposable disposables = new CompositeDisposable();
-        private readonly ConcurrentDictionary<string, CircuitBreakerBrokerPartition> partitions = new ConcurrentDictionary<string, CircuitBreakerBrokerPartition>();
-        private readonly Lazy<(ConnectionMultiplexer connection, IDatabase db, ISubscriber redisSubscriber)> lazySetup;
-        
+        private readonly ConcurrentDictionary<string, Task<CircuitBreakerBrokerPartition>> partitions = new ConcurrentDictionary<string, Task<CircuitBreakerBrokerPartition>>();
+        private readonly Lazy<Task<(ConnectionMultiplexer connection, IDatabase db, ISubscriber redisSubscriber)>> lazySetup;
 
-        public CircuitBreakerBroker(string connectionString, int dbId)
+        public CircuitBreakerBroker(string connectionString, int dbId = 0)
         {
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(connectionString));
+            }
+
             this.dbId = dbId;
+
             lazySetup
-                = new Lazy<(ConnectionMultiplexer, IDatabase, ISubscriber)>(() =>
+                = new Lazy<Task<(ConnectionMultiplexer, IDatabase, ISubscriber)>>(async () =>
                 {
-                    var connection = ConnectionMultiplexer.Connect(connectionString);
+                    //config set notify-keyspace-events KEs
+                    var connection = await ConnectionMultiplexer.ConnectAsync(connectionString);
                     var subscriber = connection.GetSubscriber();
-                    disposables.Add(Disposable.Create(() => subscriber.UnsubscribeAll()));
+                    disposables.Add(() => subscriber.UnsubscribeAll());
                     disposables.Add(connection);
                     return (connection, connection.GetDatabase(dbId), subscriber);
                 });
         }
 
-        public async Task InitializeFor(string circuitBreakerId)
+        public async Task InitializeAsync(string circuitBreakerId)
         {
-            var setup = lazySetup.Value;
+            var setup = await lazySetup.Value;
             var db = setup.db;
             var redisSubscriber = setup.redisSubscriber;
 
             var keySpace = circuitBreakerId;
-            var partition = partitions.GetOrAdd(keySpace, redisKey =>
-            {
-                var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
-                return keyPartition;
-            });
+            var partition = await partitions.GetOrAdd(keySpace,
+                                                      async redisKey => new CircuitBreakerBrokerPartition(redisKey, dbId, db));
 
             await partition.Initialize(redisSubscriber);
         }
 
-        public Task<CircuitBreakerStateDescriptor> GetLastStateAsync(string circuitBreakerId)
+        public async Task<CircuitBreakerStateDescriptor> GetLastStateAsync(string circuitBreakerId)
         {
-            var partition = GetPartition(circuitBreakerId);
-            return partition.GetLastStateAsync();
-        }
-        public Task SignalFailureAsync(string circuitBreakerId, TimeSpan expiry)
-        {
-            var partition = GetPartition(circuitBreakerId);
-            return partition.SignalFailureAsync(expiry);
+            var partition =await GetPartitionAsync(circuitBreakerId);
+          return  await partition.GetLastStateAsync();
         }
 
-        private CircuitBreakerBrokerPartition GetPartition(string circuitBreakerId)
+        public async Task SignalFailureAsync(string circuitBreakerId, TimeSpan expiry)
+        {
+            var partition = await GetPartitionAsync(circuitBreakerId);
+            await partition.SignalFailureAsync(expiry);
+        }
+
+        private async Task<CircuitBreakerBrokerPartition> GetPartitionAsync(string circuitBreakerId)
         {
             var keySpace = circuitBreakerId;
-            var partition = partitions.GetOrAdd(keySpace, redisKey =>
+            var partition = await partitions.GetOrAdd(keySpace, async redisKey =>
             {
-                var setup = lazySetup.Value;
+                var setup = await lazySetup.Value;
                 var db = setup.db;
                 var keyPartition = new CircuitBreakerBrokerPartition(redisKey, dbId, db);
                 return keyPartition;
@@ -68,20 +73,22 @@ namespace Clockwise.Redis
             return partition;
         }
 
-        public Task SignalSuccessAsync(string circuitBreakerId)
+        public async Task SignalSuccessAsync(string circuitBreakerId)
         {
-            var partition = GetPartition(circuitBreakerId);
-            return partition.SignalSuccessAsync();
+            var partition = await GetPartitionAsync(circuitBreakerId);
+
+            await partition.SignalSuccessAsync();
         }
 
-        public void Subscribe(string circuitBreakerId, CircuitBreakerBrokerSubscriber subscriber)
+        public async Task SubscribeAsync(string circuitBreakerId, CircuitBreakerBrokerSubscriber subscriber)
         {
             if (subscriber == null)
             {
                 throw new ArgumentNullException(nameof(subscriber));
             }
 
-            var partition = GetPartition(circuitBreakerId);
+            var partition = await GetPartitionAsync(circuitBreakerId);
+
             disposables.Add(partition.Subscribe(subscriber));
         }
 
