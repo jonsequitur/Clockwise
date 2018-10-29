@@ -339,5 +339,50 @@ namespace Clockwise.Tests
                 log[2].Should().Match($"*[Clockwise.VirtualClock] [AdvanceTo]  ⏹ -> ✔ (*ms)  +[ (nowAt, {Clock.Now()}) ]*");
             }
         }
+
+        [Fact]
+        public void Recording_of_budget_entries_can_be_observed()
+        {
+            VirtualClock receivedClock = null;
+            Budget receivedBudget = null;
+            BudgetEntry receivedBudgetEntry = null;
+
+            using (var clock = VirtualClock.Start())
+            {
+                var budget = new TimeBudget(1.Minutes());
+
+                clock.OnBudgetEntryRecorded((c, b, e) =>
+                {
+                    receivedClock = c;
+                    receivedBudget = b;
+                    receivedBudgetEntry = e;
+                });
+
+                budget.RecordEntry();
+
+                receivedClock.Should().BeSameAs(clock);
+                receivedBudget.Should().BeSameAs(budget);
+                receivedBudgetEntry.Name.Should().Be(nameof(Recording_of_budget_entries_can_be_observed));
+            }
+        }
+
+        [Fact]
+        public void OnBudgetEntryRecorded_stops_receiving_notifications_after_disposal_of_returned_disposable()
+        {
+            var budgetEntryNotificationCount = 0;
+
+            using (var clock = VirtualClock.Start())
+            {
+                var budget = new TimeBudget(1.Minutes());
+                using (clock.OnBudgetEntryRecorded((c, b, e) => budgetEntryNotificationCount++))
+                {
+                    budget.RecordEntry();
+                }
+
+                budget.RecordEntry();
+
+                budgetEntryNotificationCount.Should().Be(1);
+            }
+        }
     }
 }

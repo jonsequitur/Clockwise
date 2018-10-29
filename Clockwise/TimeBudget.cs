@@ -4,7 +4,7 @@ namespace Clockwise
 {
     public class TimeBudget : Budget
     {
-        private  TimeSpan? elapsedDurationAtCancellation;
+        private TimeSpan? elapsedDurationAtCancellation;
 
         public TimeBudget(
             TimeSpan duration,

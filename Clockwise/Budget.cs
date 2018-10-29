@@ -11,6 +11,8 @@ namespace Clockwise
     {
         protected readonly ConcurrentBag<BudgetEntry> entries = new ConcurrentBag<BudgetEntry>();
 
+        protected readonly Action<BudgetEntry> onBudgetEntryRecorded;
+
         public Budget(
             CancellationToken? cancellationToken = null,
             IClock clock = null)
@@ -20,6 +22,14 @@ namespace Clockwise
                                           : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken.Value);
 
             Clock = clock ?? Clockwise.Clock.Current;
+
+            if (Clock is VirtualClock virtualClock)
+            {
+                onBudgetEntryRecorded = entry =>
+                {
+                    virtualClock.NotifyBudgetEntryRecorded(this, entry);
+                };
+            }
 
             StartTime = Clock.Now();
         }
@@ -46,9 +56,15 @@ namespace Clockwise
 
         public void Cancel() => CancellationTokenSource.Cancel();
        
-        public void RecordEntry([CallerMemberName] string name = null) =>
-            entries.Add(new BudgetEntry(name, this));
-       
+        public void RecordEntry([CallerMemberName] string name = null)
+        {
+            var budgetEntry = new BudgetEntry(name, this);
+
+            entries.Add(budgetEntry);
+
+            onBudgetEntryRecorded?.Invoke(budgetEntry);
+        }
+
         public void RecordEntryAndThrowIfBudgetExceeded([CallerMemberName] string name = null)
         {
             RecordEntry(name);
