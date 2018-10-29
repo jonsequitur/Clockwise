@@ -10,7 +10,7 @@ namespace Clockwise
     {
         private static readonly Logger logger = Logger<VirtualClock>.Log;
         private readonly List<(DateTimeOffset, Action<VirtualClock>)> schedule = new List<(DateTimeOffset, Action<VirtualClock>)>();
-
+        private event Action<Budget, BudgetEntry> budgetEntryRecorded;
         private readonly string createdBy;
 
         private DateTimeOffset now;
@@ -139,7 +139,18 @@ namespace Clockwise
                 logger.Category,
                 "Advancing from {start} ({startTicks}) to {end} ({endTicks})",
                 args: new object[] { start, start.Ticks, end, end.Ticks },
-                exitArgs: () => new[] { ("nowAt", (object)now) },
+                exitArgs: () => new[] { ("nowAt", (object) now) },
                 logOnStart: true);
+
+        public IDisposable OnBudgetEntryRecorded(BudgetEntryRecorded recorded)
+        {
+            budgetEntryRecorded += NotifyEventSubscriber;
+
+            return Disposable.Create(() => budgetEntryRecorded -= NotifyEventSubscriber);
+
+            void NotifyEventSubscriber(Budget budget, BudgetEntry entry) => recorded(this, budget, entry);
+        }
+
+        internal void NotifyBudgetEntryRecorded(Budget budget, BudgetEntry entry) => budgetEntryRecorded?.Invoke(budget, entry);
     }
 }
